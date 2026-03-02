@@ -1,5 +1,4 @@
 from board import Board
-import random
 
 
 def main() -> None:
