@@ -25,9 +25,9 @@ class Tile:
 
     def land_on(self, player: 'Player') -> None:
         """Handle what happens when a player lands on this tile."""
-        print(f"[{player.piece}] {player.name} landed on {self.name} (Type: {self.type}).")
+        print(f"🏎️​  [{player.piece()}] {player.name()} landed on {self.name()} (Type: {self.type()}).")
         if self.description():
-            print(f"    -> {self.description}")
+            print(f"    -> {self.description()}")
     
 
     def type(self) -> str:
