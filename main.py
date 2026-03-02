@@ -10,7 +10,6 @@ def main() -> None:
         players_json_path="data/players.json",
     )
 
-    random.seed(25)
     board.play()
 
 

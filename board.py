@@ -21,11 +21,11 @@ class Board:
 
         # Load the tiles immediately upon creating the board
         self._tiles: list["Tile"] = self._load_tiles()
-        self._players: list['Player'] = self._load_players()
+        self._players: list["Player"] = self._load_players()
 
         # State tracking
         self._current_player_index: int = 0
-        self._current_dice: tuple[int, int] = (1,1)
+        self._current_dice: tuple[int, int] = (1, 1)
 
     def _load_tiles(self) -> list["Tile"]:
         """Reads the tiles.json file and builds the board."""
@@ -39,7 +39,7 @@ class Board:
 
         return board_tiles
 
-    def _load_players(self) -> list['Player']:
+    def _load_players(self) -> list["Player"]:
         with open(self._players_json_path, "r", encoding="utf-8") as file:
             players_data = json.load(file)
 
@@ -61,7 +61,7 @@ class Board:
     def dice(self) -> tuple[int, int]:
         return self._current_dice
 
-    def current_player(self) -> Player: 
+    def current_player(self) -> Player:
         return self._players[self._current_player_index]
 
     def num_tiles(self) -> int:
@@ -70,25 +70,61 @@ class Board:
     def jail_position(self) -> int:
         return 10
 
+    def roll_dice(self) -> tuple[int, int]:
+        """Rolls two 6-sided dice and updates the board's current dice state."""
+        d1 = random.randint(1, 6)
+        d2 = random.randint(1, 6)
+        self._current_dice = (d1, d2)
+        return self._current_dice
+
+    def is_double(self) -> bool:
+        """Returns True if the last rolled dice have the same value."""
+        return self._current_dice[0] == self._current_dice[1]
+
     def play(self) -> None:
-        '''Basic game loop to test movement and passing GO.'''
-        print('---Starting Monopoly Basic Movement Test---')
+        """Basic game loop to test movement and passing GO."""
+        print("---Starting Monopoly Basic Movement Test---")
 
         for _ in range(8):
             player = self.current_player()
+            active_turn = True
+            doubles_count = 0
 
-            # Roll dice
-            d1, d2 = random.randint(1, 6), random.randint(1, 6)
-            self._current_dice = (d1, d2)
-            total_roll = d1 + d2
+            print(f"\n--- [{player.piece}] {player.name()}'s turn ---")
 
-            print(f"\n🎲 [{player.piece()}] {player.name()}  rolls {d1} and {d2} (Total: {total_roll})")
+            while active_turn:
+                # Roll dice
+                d1, d2 = self.roll_dice()
+                self._current_dice = (d1, d2)
+                total_roll = d1 + d2
 
-            player.move(total_roll)
+                roll_msg = f"\n🎲 [{player.piece()}] {player.name()}  rolls {d1} and {d2} (Total: {total_roll})"
 
-            self._current_player_index = (self._current_player_index + 1) % len(self._players)
+                # Detect doubles
+                if self.is_double():
+                    doubles_count += 1
+                    roll_msg += " 🎲 DOUBLE!"
+                    print(roll_msg)
+
+                    if doubles_count == 3:
+                        player.go_to_jail()
+                        active_turn = False
+                    else:
+                        player.move(total_roll)
+                        print("\n 🔄 Rolls again!")
+
+                else:
+                    print(roll_msg)
+                    player.move(total_roll)
+                    active_turn = False
+
+            # Move to next player
+            self._current_player_index = (self._current_player_index + 1) % len(
+                self._players
+            )
 
         print("\n--- Test Run Completed ---")
+
 
 def save_board(board: Board, pickle_path: str) -> None:
     with open(pickle_path, "wb") as f:
