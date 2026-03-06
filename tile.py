@@ -78,6 +78,45 @@ class Property(Tile):
         """Base rent calculation. Overridden by subclasses."""
         return self._base_rent
 
+    # --- PAS 7: Hipoteques (Base Property) ---
+
+    def can_mortgage(self) -> bool:
+        """Pas 7.1: A property can be mortgaged if it's owned and not already mortgaged."""
+        if self.owner() is None or self._is_mortgaged:
+            return False
+        return True
+
+    def mortgage(self) -> None:
+        """Pas 7.1: Mortgage the property and receive the mortgage value."""
+        current_owner = self.owner()
+        if current_owner is not None and self.can_mortgage():
+            self._is_mortgaged = True
+            current_owner.receive(self._mortgage)
+            print(
+                f"    -> 🏦 {current_owner.name()} mortgaged {self.name()} for £{self._mortgage}."
+            )
+
+    def can_unmortgage(self) -> bool:
+        """Pas 7.2: Can unmortgage if owned, mortgaged, and the player has enough money (mortgage + 10%)."""
+        current_owner = self.owner()
+        if current_owner is None or not self._is_mortgaged:
+            return False
+
+        # Calculate cost with 10% interest
+        cost = int(self._mortgage * 1.1)
+        return current_owner.money() >= cost
+
+    def unmortgage(self) -> None:
+        """Pas 7.2: Pay the mortgage value + 10% interest to unmortgage."""
+        current_owner = self.owner()
+        if current_owner is not None and self.can_unmortgage():
+            cost = int(self._mortgage * 1.1)
+            current_owner.pay(cost)
+            self._is_mortgaged = False
+            print(
+                f"    -> 💸 {current_owner.name()} unmortgaged {self.name()} for £{cost}."
+            )
+
     def buy(self, player: "Player") -> None:
         """Handles the transaction of buying the property."""
         player.pay(self._price)
@@ -86,26 +125,31 @@ class Property(Tile):
         print(f"    -> 💰 {player.name()} bought {self.name()} for £{self._price}!")
 
     def land_on(self, player: "Player") -> None:
-        """Step 4.5: Buy if free, pay rent if owned."""
-        super().land_on(player)
+        """Step 4.5 & 5: Buy if free (based on strategy), pay rent if occupied."""
+        # Using Tile's base land_on for the standard log
+        super(Property, self).land_on(player)
 
-        if not self.is_owned():
-            # Auto-buy logic for testing (if they have enough money)
-            if player.money() >= self._price:
-                self.buy(player)
+        current_owner = self.owner()
+
+        if current_owner is None:
+            # Ask the strategy!
+            if player.strategy().should_buy_property(player, self):
+                # Double check they actually have the funds, just to be safe against bad strategy logic
+                if player.money() >= self._price:
+                    self.buy(player)
             else:
-                print(f"    -> Not enough money to buy {self.name()} (£{self._price}).")
+                print(f"    -> 🛑 {player.name()} decided NOT to buy {self.name()}.")
 
-        elif self.owner() != player and not self._is_mortgaged:
-            # It's owned by someone else! Calculate and pay rent.
+        elif current_owner != player and not self._is_mortgaged:
+            # Rent payment logic remains exactly the same as Step 4
             dice_roll = sum(self._board.dice())
             rent_amt = self.calculate_rent(dice_roll)
 
-            print(f"    -> Owned by {self.owner().name()}. Rent is £{rent_amt}.")
+            print(f"    -> Owned by {current_owner.name()}. Rent is £{rent_amt}.")
             player.pay(rent_amt)
-            self.owner().receive(rent_amt)
+            current_owner.receive(rent_amt)
             print(
-                f"    -> 💸 {player.name()} paid £{rent_amt} to {self.owner().name()}."
+                f"    -> 💸 {player.name()} paid £{rent_amt} to {current_owner.name()}."
             )
 
 
@@ -148,7 +192,7 @@ class Street(Property):
         self.hotels: int = 0
 
     def calculate_rent(self, dice_roll: int) -> int:
-        """Step 4.2: Calculate rent based on development."""
+        """Step 4.2: Calculate rent based on development and monopoly."""
         if self.hotels > 0:
             return self._rent_with_hotel
         if self.houses == 4:
@@ -159,8 +203,143 @@ class Street(Property):
             return self._rent_with_2_houses
         if self.houses == 1:
             return self._rent_with_1_house
-        # TODO in a later step: check if full color set is owned for 2x rent
+
+        # Double rent if the color set is owned but undeveloped
+        if self.has_monopoly():
+            return self._rent_with_color_set
+
         return self._base_rent
+
+    def can_mortgage(self) -> bool:
+        """Pas 7.1 Constraint: Cannot mortgage a street with buildings."""
+        if self.houses > 0 or self.hotels > 0:
+            return False
+        # If it has no buildings, fall back to the base Property rules
+        return super().can_mortgage()
+
+    def _get_color_group(self) -> list["Street"]:
+        """Helper to get all streets of the same color."""
+        # Using isinstance tells Pylance exactly what type we are filtering for
+        return [
+            t
+            for t in self._board.tiles()
+            if isinstance(t, Street) and getattr(t, "_color", "") == self._color
+        ]
+
+    def has_monopoly(self) -> bool:
+        """Verifies if the owner owns all streets of this color."""
+        current_owner = self.owner()
+        if current_owner is None:
+            return False
+
+        group = self._get_color_group()
+        return all(street.owner() == current_owner for street in group)
+
+    # --- PAS 6.1: Compra de cases ---
+
+    def can_build_house(self) -> bool:
+        """Checks monopoly, funds, and uniform building rules."""
+        current_owner = self.owner()
+        if current_owner is None:
+            return False
+
+        if not self.has_monopoly():
+            return False
+        if self.hotels > 0 or self.houses == 4:
+            return False
+
+        if current_owner.money() < self._house_cost:
+            return False
+
+        group = self._get_color_group()
+        # Uniform rule: No other street in the group can have fewer houses than this one.
+        for street in group:
+            if street.hotels == 0 and street.houses < self.houses:
+                return False
+        return True
+
+    def build_house(self) -> None:
+        current_owner = self.owner()
+        if current_owner is not None and self.can_build_house():
+            current_owner.pay(self._house_cost)
+            self.houses += 1
+            print(
+                f"    -> 🏠 {current_owner.name()} built house #{self.houses} on {self.name()} for £{self._house_cost}!"
+            )
+
+    # --- PAS 6.2: Compra d'hotels ---
+
+    def can_build_hotel(self) -> bool:
+        """Checks if 4 houses are built uniformly and funds are available."""
+        current_owner = self.owner()
+        if current_owner is None:
+            return False
+
+        if not self.has_monopoly():
+            return False
+        if self.houses != 4 or self.hotels > 0:
+            return False
+
+        if current_owner.money() < self._hotel_cost:
+            return False
+
+        group = self._get_color_group()
+        # Uniform rule: All other streets must also have 4 houses or a hotel
+        for street in group:
+            if street.hotels == 0 and street.houses < 4:
+                return False
+        return True
+
+    def build_hotel(self) -> None:
+        current_owner = self.owner()
+        if current_owner is not None and self.can_build_hotel():
+            current_owner.pay(self._hotel_cost)
+            self.houses = 0  # 4 houses are returned to the bank
+            self.hotels = 1
+            print(
+                f"    -> 🏢 {current_owner.name()} upgraded to a HOTEL on {self.name()} for £{self._hotel_cost}!"
+            )
+
+    # --- PAS 6.3: Venda (Mantenint uniformitat i meitat de preu) ---
+
+    def can_sell_house(self) -> bool:
+        if self.owner() is None:
+            return False
+        if self.houses == 0:
+            return False
+
+        group = self._get_color_group()
+        # Uniform rule: Cannot sell if another street has MORE houses than this one
+        for street in group:
+            if street.hotels > 0 or street.houses > self.houses:
+                return False
+        return True
+
+    def sell_house(self) -> None:
+        current_owner = self.owner()
+        if current_owner is not None and self.can_sell_house():
+            recoup_amount = self._house_cost // 2  # Bank pays half
+            current_owner.receive(recoup_amount)
+            self.houses -= 1
+            print(
+                f"    -> 🔨 {current_owner.name()} sold a house on {self.name()} for £{recoup_amount}."
+            )
+
+    def can_sell_hotel(self) -> bool:
+        if self.owner() is None:
+            return False
+        return self.hotels == 1
+
+    def sell_hotel(self) -> None:
+        current_owner = self.owner()
+        if current_owner is not None and self.can_sell_hotel():
+            recoup_amount = self._hotel_cost // 2
+            current_owner.receive(recoup_amount)
+            self.hotels = 0
+            self.houses = 4  # Degrades back to 4 houses
+            print(
+                f"    -> 🔨 {current_owner.name()} sold a hotel on {self.name()} for £{recoup_amount}."
+            )
 
 
 class Station(Property):
@@ -241,6 +420,34 @@ class Utility(Property):
         return dice_roll * multiplier
 
 
+class CardSquare(Tile):
+    """Pas 8.4: Caselles de targetes (ChanceSquare, CommunityChestSquare)"""
+
+    def __init__(
+        self, board: "Board", position: int, name: str, tile_type: str, description: str
+    ):
+        super().__init__(board, position, name, tile_type, description)
+
+    def land_on(self, player: "Player") -> None:
+        super().land_on(player)
+
+        # Determine which deck to pull from
+        if self.type() == "chance":
+            card = self._board.chance_deck().draw()
+        else:
+            card = self._board.community_chest_deck().draw()
+
+        card.execute(player, self._board)
+
+
+class GoToJailSquare(Tile):
+    """Pas 9.1: Casella que envia directament a la presó."""
+
+    def land_on(self, player: "Player") -> None:
+        super().land_on(player)
+        player.go_to_jail()
+
+
 def build_tile(board: "Board", data: dict[str, Any]) -> Tile:
     tile_type = data.get("type", "unknown")
     position = data.get("position", -1)
@@ -285,6 +492,9 @@ def build_tile(board: "Board", data: dict[str, Any]) -> Tile:
             description,
         )
 
+    elif tile_type in ("chance", "community_chest"):
+        return CardSquare(board, position, name, tile_type, description)
+
     elif tile_type == "utility":
         return Utility(
             board,
@@ -298,5 +508,9 @@ def build_tile(board: "Board", data: dict[str, Any]) -> Tile:
             description,
         )
 
-    # Fallback for special, tax, chance, community_chest
+    elif tile_type == "special":
+        if name == "Go To Jail":
+            return GoToJailSquare(board, position, name, tile_type, description)
+
+    # Fallback for GO, Free Parking, Taxes, etc.
     return Tile(board, position, name, tile_type, description)
