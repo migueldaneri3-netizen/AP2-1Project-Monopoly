@@ -95,14 +95,31 @@ class Board:
         print("--- Starting Monopoly Simulation ---")
 
         from draw import draw
+
         frame_counter = 0
 
         # 1. Take snapshot of the initial starting board
-        draw(self, f"frame_{frame_counter:04d}.svg")
+        draw(self, f"frames/frame_{frame_counter:04d}.svg")
         frame_counter += 1
 
-        for _ in range(100):
+        # 🛠️ Fail-safe limit to prevent infinite loops
+        MAX_TURNS = 500
+        turn_count = 0
+
+        # Keep playing as long as more than 1 player is alive, AND we haven't hit the limit
+        while (
+            len([p for p in self._players if not p.is_bankrupt()]) > 1
+            and turn_count < MAX_TURNS
+        ):
             player = self.current_player()
+
+            # Skip bankrupt players!
+            if player.is_bankrupt():
+                self._current_player_index = (self._current_player_index + 1) % len(
+                    self._players
+                )
+                continue
+
             active_turn = True
             doubles_count = 0
 
@@ -153,7 +170,7 @@ class Board:
                     # Take snapshot and skip the normal turn logic
                     from draw import draw
 
-                    draw(self, f"frame_{frame_counter:04d}.svg")
+                    draw(self, f"frames/frame_{frame_counter:04d}.svg")
                     frame_counter += 1
                     continue
 
@@ -179,10 +196,11 @@ class Board:
                     active_turn = False
 
                 # Snapshot after normal movement
-                from draw import draw
 
-                draw(self, f"frame_{frame_counter:04d}.svg")
+                draw(self, f"frames/frame_{frame_counter:04d}.svg")
                 frame_counter += 1
+
+            turn_count += 1
 
             # NEW: Run the portfolio optimization script at the very end of the turn
             player.strategy().manage_portfolio(player)
@@ -192,7 +210,12 @@ class Board:
                 self._players
             )
 
-        print(f"\n--- Simulation Completed: Generated {frame_counter} frames ---")
+        print(f"\n🏆 SIMULATION OVER after {turn_count} turns! 🏆")
+        # Optional: Print the winner (the richest surviving player)
+        winner = max(
+            [p for p in self._players if not p.is_bankrupt()], key=lambda p: p.money()
+        )
+        print(f"👑 Winner: {winner.name()} with £{winner.money()}!")
 
 
 def save_board(board: Board, pickle_path: str) -> None:

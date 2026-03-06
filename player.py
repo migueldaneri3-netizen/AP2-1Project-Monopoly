@@ -76,7 +76,7 @@ class Player:
 
     def owned_properties(self) -> list[Property]:
         return self._owned_properties
-    
+
     def strategy(self) -> PlayerStrategy:
         return self._strategy
 
@@ -134,7 +134,7 @@ class Player:
     def decrement_jail_turn(self) -> None:
         """Reduces the remaining jail time by 1."""
         self._turns_in_prison -= 1
-        
+
     def use_get_out_of_jail_card(self) -> bool:
         """Attempts to use a card. Returns True if successful."""
         if self._get_out_of_jail_free_cards > 0:
@@ -142,7 +142,7 @@ class Player:
             self.release_from_jail()
             return True
         return False
-    
+
     def set_position(self, new_position: int) -> None:
         """Safely updates the player's position."""
         self._position = new_position
@@ -155,12 +155,16 @@ class Player:
         """Adds a property to the player's portfolio."""
         self._owned_properties.append(property_tile)
 
+    def is_bankrupt(self) -> bool:
+        """A player is bankrupt if they have negative money."""
+        return self._money < 0
+
 
 def build_player(board: Board, data: dict[str, Any], index: int) -> Player:
     player = Player(board, data["name"], data["piece"], data["color"], index)
-    
+
     # Let's make half the board smart, and half the board simple
     if index < 2:
         player.set_strategy(SmartStrategy())
-        
+
     return player
