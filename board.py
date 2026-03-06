@@ -101,7 +101,7 @@ class Board:
         draw(self, f"frame_{frame_counter:04d}.svg")
         frame_counter += 1
 
-        for _ in range(20):
+        for _ in range(100):
             player = self.current_player()
             active_turn = True
             doubles_count = 0

@@ -58,12 +58,12 @@
             <button id="btn-last" onclick="goToLast()">⏭️</button>
         </div>
         <div class="info">
-            <span id="current-info">1 / 12</span>
+            <span id="current-info">1 / 126</span>
         </div>
     </div>
     
     <script>
-        const svgPaths = ['frame_0000.svg', 'frame_0001.svg', 'frame_0002.svg', 'frame_0003.svg', 'frame_0004.svg', 'frame_0005.svg', 'frame_0006.svg', 'frame_0007.svg', 'frame_0008.svg', 'frame_0009.svg', 'frame_0010.svg', 'frame_0011.svg'];
+        const svgPaths = ['frame_0000.svg', 'frame_0001.svg', 'frame_0002.svg', 'frame_0003.svg', 'frame_0004.svg', 'frame_0005.svg', 'frame_0006.svg', 'frame_0007.svg', 'frame_0008.svg', 'frame_0009.svg', 'frame_0010.svg', 'frame_0011.svg', 'frame_0012.svg', 'frame_0013.svg', 'frame_0014.svg', 'frame_0015.svg', 'frame_0016.svg', 'frame_0017.svg', 'frame_0018.svg', 'frame_0019.svg', 'frame_0020.svg', 'frame_0021.svg', 'frame_0022.svg', 'frame_0023.svg', 'frame_0024.svg', 'frame_0025.svg', 'frame_0026.svg', 'frame_0027.svg', 'frame_0028.svg', 'frame_0029.svg', 'frame_0030.svg', 'frame_0031.svg', 'frame_0032.svg', 'frame_0033.svg', 'frame_0034.svg', 'frame_0035.svg', 'frame_0036.svg', 'frame_0037.svg', 'frame_0038.svg', 'frame_0039.svg', 'frame_0040.svg', 'frame_0041.svg', 'frame_0042.svg', 'frame_0043.svg', 'frame_0044.svg', 'frame_0045.svg', 'frame_0046.svg', 'frame_0047.svg', 'frame_0048.svg', 'frame_0049.svg', 'frame_0050.svg', 'frame_0051.svg', 'frame_0052.svg', 'frame_0053.svg', 'frame_0054.svg', 'frame_0055.svg', 'frame_0056.svg', 'frame_0057.svg', 'frame_0058.svg', 'frame_0059.svg', 'frame_0060.svg', 'frame_0061.svg', 'frame_0062.svg', 'frame_0063.svg', 'frame_0064.svg', 'frame_0065.svg', 'frame_0066.svg', 'frame_0067.svg', 'frame_0068.svg', 'frame_0069.svg', 'frame_0070.svg', 'frame_0071.svg', 'frame_0072.svg', 'frame_0073.svg', 'frame_0074.svg', 'frame_0075.svg', 'frame_0076.svg', 'frame_0077.svg', 'frame_0078.svg', 'frame_0079.svg', 'frame_0080.svg', 'frame_0081.svg', 'frame_0082.svg', 'frame_0083.svg', 'frame_0084.svg', 'frame_0085.svg', 'frame_0086.svg', 'frame_0087.svg', 'frame_0088.svg', 'frame_0089.svg', 'frame_0090.svg', 'frame_0091.svg', 'frame_0092.svg', 'frame_0093.svg', 'frame_0094.svg', 'frame_0095.svg', 'frame_0096.svg', 'frame_0097.svg', 'frame_0098.svg', 'frame_0099.svg', 'frame_0100.svg', 'frame_0101.svg', 'frame_0102.svg', 'frame_0103.svg', 'frame_0104.svg', 'frame_0105.svg', 'frame_0106.svg', 'frame_0107.svg', 'frame_0108.svg', 'frame_0109.svg', 'frame_0110.svg', 'frame_0111.svg', 'frame_0112.svg', 'frame_0113.svg', 'frame_0114.svg', 'frame_0115.svg', 'frame_0116.svg', 'frame_0117.svg', 'frame_0118.svg', 'frame_0119.svg', 'frame_0120.svg', 'frame_0121.svg', 'frame_0122.svg', 'frame_0123.svg', 'frame_0124.svg', 'frame_0125.svg'];
         let currentIndex = 0;
         
         function updateDisplay() {

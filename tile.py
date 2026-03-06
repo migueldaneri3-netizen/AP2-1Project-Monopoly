@@ -448,6 +448,27 @@ class GoToJailSquare(Tile):
         player.go_to_jail()
 
 
+class TaxSquare(Tile):
+    """Casella d'impostos que dedueix diners directament."""
+
+    def __init__(
+        self,
+        board: "Board",
+        position: int,
+        name: str,
+        tile_type: str,
+        description: str,
+        amount: int,
+    ):
+        super().__init__(board, position, name, tile_type, description)
+        self._amount = amount
+
+    def land_on(self, player: "Player") -> None:
+        super().land_on(player)
+        player.pay(self._amount)
+        print(f"    -> 🏛️ {player.name()} paid £{self._amount} in taxes.")
+
+
 def build_tile(board: "Board", data: dict[str, Any]) -> Tile:
     tile_type = data.get("type", "unknown")
     position = data.get("position", -1)
@@ -512,5 +533,10 @@ def build_tile(board: "Board", data: dict[str, Any]) -> Tile:
         if name == "Go To Jail":
             return GoToJailSquare(board, position, name, tile_type, description)
 
-    # Fallback for GO, Free Parking, Taxes, etc.
+    elif tile_type == "tax":
+        # Check for 'amount' first, fallback to 'price' or a default of 200
+        tax_amount = data.get("amount", data.get("price", 200))
+        return TaxSquare(board, position, name, tile_type, description, tax_amount)
+
+    # Fallback for GO, Free Parking, etc.
     return Tile(board, position, name, tile_type, description)

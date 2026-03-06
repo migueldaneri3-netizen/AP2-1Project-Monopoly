@@ -60,40 +60,49 @@ class SmartStrategy(PlayerStrategy):
         return False
 
     def manage_portfolio(self, player: "Player") -> None:
-        """Evaluates owned properties to build, sell, mortgage, or unmortgage."""
-        owned_props = player.owned_properties()
+        """Pas 10: Executa accions post-moviment d'una en una segons l'estat financer."""
 
-        # 1. SURVIVAL MODE: If we are broke or below our £300 emergency fund, raise cash!
+        # --- PHASE 1: SURVIVAL (Raise cash if below £300) ---
         if player.money() < 300:
-            for prop in owned_props:
-                # Sell houses first
+            for prop in player.owned_properties():
+                if player.money() >= 300:
+                    break  # Survived! Stop liquidating.
+
                 if isinstance(prop, tile.Street):
-                    while prop.can_sell_house() and player.money() < 300:
-                        prop.sell_house()
-                    if prop.can_sell_hotel() and player.money() < 300:
+                    # Sell hotels one by one
+                    if prop.can_sell_hotel():
                         prop.sell_hotel()
 
-                # If still poor, start mortgaging properties
+                    # Sell houses one by one
+                    while prop.can_sell_house() and player.money() < 300:
+                        prop.sell_house()
+
+                # Mortgage one by one
                 if prop.can_mortgage() and player.money() < 300:
                     prop.mortgage()
 
-        # 2. PROSPERITY MODE: If we have excess cash, unmortgage things before building
+        # --- PHASE 2: PROSPERITY (Unmortgage if cash is high) ---
         elif player.money() > 500:
-            for prop in owned_props:
+            for prop in player.owned_properties():
                 if getattr(prop, "_is_mortgaged", False) and prop.can_unmortgage():
-                    # Keep a buffer so we don't unmortgage ourselves into poverty
                     cost = int(getattr(prop, "_mortgage", 0) * 1.1)
                     if player.money() - cost >= 300:
                         prop.unmortgage()
 
-        # 3. BUILD MODE: Build houses/hotels if funds permit (Same as before)
-        for prop in owned_props:
-            if isinstance(prop, tile.Street):
-                if prop.can_build_hotel():
-                    if (player.money() - getattr(prop, "_hotel_cost", 0)) >= 300:
+        # --- PHASE 3: GROWTH (Build houses/hotels if funds permit) ---
+        if player.money() > 300:
+            for prop in player.owned_properties():
+                if isinstance(prop, tile.Street):
+
+                    # Upgrade to hotel
+                    if (
+                        prop.can_build_hotel()
+                        and (player.money() - getattr(prop, "_hotel_cost", 0)) >= 300
+                    ):
                         prop.build_hotel()
 
-                while prop.can_build_house():
-                    if (player.money() - getattr(prop, "_house_cost", 0)) < 300:
-                        break
-                    prop.build_house()
+                    # Build houses one by one
+                    while prop.can_build_house():
+                        if (player.money() - getattr(prop, "_house_cost", 0)) < 300:
+                            break
+                        prop.build_house()
