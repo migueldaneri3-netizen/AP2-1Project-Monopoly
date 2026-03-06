@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import drawsvg as dw
-from board import Board
 from tile import Tile
+if TYPE_CHECKING:
+    from board import Board
 
 
 # Board dimensions: 1000x1000 total; player info in four quadrants at center
@@ -59,30 +60,21 @@ def tile_center(position: int) -> tuple[float, float]:
 def tile_fill_color(tile: Tile) -> str:
     """Return fill color for a tile based on its type/color."""
     if tile.type() == "property":
-        color = getattr(tile, "color", None)
+        # FIXED: Look for private _color
+        color = getattr(tile, "_color", None)
         if color is not None:
             return COLOR_MAP.get(color, "#E0E0E0")
-    if tile.type() == "station":
-        return "#E0E0E0"
-    if tile.type() == "utility":
-        return "#E0E0E0"
+    if tile.type() == "station": return "#E0E0E0"
+    if tile.type() == "utility": return "#E0E0E0"
     if tile.type() == "special":
-        if tile.name() == "GO":
-            return "#90EE90"
-        if "Jail" in tile.name() or "Visiting" in tile.name():
-            return "#F5F5DC"
-        if tile.name() == "Free Parking":
-            return "#87CEEB"
-        if tile.name() == "Go To Jail":
-            return "#FFB6C1"
-    if tile.type() == "community_chest":
-        return "#98FB98"
-    if tile.type() == "chance":
-        return "#FFA500"
-    if tile.type() == "tax":
-        return "#DDA0DD"
+        if tile.name() == "GO": return "#90EE90"
+        if "Jail" in tile.name() or "Visiting" in tile.name(): return "#F5F5DC"
+        if tile.name() == "Free Parking": return "#87CEEB"
+        if tile.name() == "Go To Jail": return "#FFB6C1"
+    if tile.type() == "community_chest": return "#98FB98"
+    if tile.type() == "chance": return "#FFA500"
+    if tile.type() == "tax": return "#DDA0DD"
     return "#F5F5F5"
-
 
 def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> None:
     """Draw all tiles on the left board area."""
@@ -90,170 +82,63 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
         x, y, w, h = tile_rect(tile.position())
         fill = tile_fill_color(tile)
         d.append(dw.Rectangle(x, y, w, h, fill=fill, stroke="black", stroke_width=1))
-        # Icon at top of tile for station, utility, chance, community_chest
+        
         icon_y = y + 28
         cx = x + w / 2
-        if tile.type == "station":
-            d.append(
-                dw.Text(
-                    "🚆",
-                    22,
-                    cx,
-                    icon_y,
-                    text_anchor="middle",
-                    dominant_baseline="middle",
-                    font_family=FONT_FAMILY,
-                )
-            )
-        elif tile.type == "utility":
+        
+        # FIXED: Added () to all tile.type and tile.name calls
+        if tile.type() == "station":
+            d.append(dw.Text("🚆", 22, cx, icon_y, text_anchor="middle", dominant_baseline="middle", font_family=FONT_FAMILY))
+        elif tile.type() == "utility":
             icon = "💡" if "Electric" in tile.name() else "🚰"
-            d.append(
-                dw.Text(
-                    icon,
-                    22,
-                    cx,
-                    icon_y,
-                    text_anchor="middle",
-                    dominant_baseline="middle",
-                    font_family=FONT_FAMILY,
-                )
-            )
-        elif tile.type == "chance":
-            d.append(
-                dw.Text(
-                    "❓",
-                    22,
-                    cx,
-                    icon_y,
-                    text_anchor="middle",
-                    dominant_baseline="middle",
-                    font_family=FONT_FAMILY,
-                )
-            )
-        elif tile.type == "community_chest":
-            d.append(
-                dw.Text(
-                    "💰",
-                    22,
-                    cx,
-                    icon_y,
-                    text_anchor="middle",
-                    dominant_baseline="middle",
-                    font_family=FONT_FAMILY,
-                )
-            )
-        elif tile.type == "tax":
-            d.append(
-                dw.Text(
-                    "🏦",
-                    22,
-                    cx,
-                    icon_y,
-                    text_anchor="middle",
-                    dominant_baseline="middle",
-                    font_family=FONT_FAMILY,
-                )
-            )
-        elif tile.type == "special":
-            if tile.name == "GO":
-                icon = "⭐"
-            elif tile.name == "Go To Jail":
-                icon = "👮"
-            elif "Jail" in tile.name() or "Visiting" in tile.name():
-                icon = "⛓️"
-            elif tile.name() == "Free Parking":
-                icon = "🚗"
-            else:
-                icon = None
+            d.append(dw.Text(icon, 22, cx, icon_y, text_anchor="middle", dominant_baseline="middle", font_family=FONT_FAMILY))
+        elif tile.type() == "chance":
+            d.append(dw.Text("❓", 22, cx, icon_y, text_anchor="middle", dominant_baseline="middle", font_family=FONT_FAMILY))
+        elif tile.type() == "community_chest":
+            d.append(dw.Text("💰", 22, cx, icon_y, text_anchor="middle", dominant_baseline="middle", font_family=FONT_FAMILY))
+        elif tile.type() == "tax":
+            d.append(dw.Text("🏦", 22, cx, icon_y, text_anchor="middle", dominant_baseline="middle", font_family=FONT_FAMILY))
+        elif tile.type() == "special":
+            if tile.name() == "GO": icon = "⭐"
+            elif tile.name() == "Go To Jail": icon = "👮"
+            elif "Jail" in tile.name() or "Visiting" in tile.name(): icon = "⛓️"
+            elif tile.name() == "Free Parking": icon = "🚗"
+            else: icon = None
             if icon is not None:
-                d.append(
-                    dw.Text(
-                        icon,
-                        22,
-                        cx,
-                        icon_y,
-                        text_anchor="middle",
-                        dominant_baseline="middle",
-                        font_family=FONT_FAMILY,
-                    )
-                )
-        # Streets: horizontal line in the first fourth of the tile height (full width, lower)
-        if tile.type == "property":
+                d.append(dw.Text(icon, 22, cx, icon_y, text_anchor="middle", dominant_baseline="middle", font_family=FONT_FAMILY))
+                
+        if tile.type() == "property":
             line_y = y + h / 4
-            d.append(
-                dw.Line(
-                    x,
-                    line_y,
-                    x + w,
-                    line_y,
-                    stroke="black",
-                    stroke_width=1,
-                )
-            )
-        # Tile name: one line per word, centered in the tile; buy price below for properties
+            d.append(dw.Line(x, line_y, x + w, line_y, stroke="black", stroke_width=1))
+            
         words = tile.name().split()
-        if not words:
-            words = [tile.name()]
-        price = getattr(tile, "price", None)
-        if tile.type in ("property", "station", "utility") and price is not None:
+        if not words: words = [tile.name()]
+        
+        # FIXED: Look for private _price instead of public price
+        price = getattr(tile, "_price", None)
+        if tile.type() in ("property", "station", "utility") and price is not None:
             words.append(f"£{price}")
+            
         cx, cy = x + w / 2, y + h / 2
         font_size = min(20, max(6, int(w / 8)))
-        d.append(
-            dw.Text(
-                " ".join(words),
-                font_size,
-                cx,
-                cy,
-                text_anchor="middle",
-                dominant_baseline="middle",
-                font_family=FONT_FAMILY,
-            )
-        )
-        # Mortgaged properties: show "M" on the inside (inner corner)
-        if tile.type in ("property", "station", "utility") and getattr(
-            tile, "is_mortgaged", False
-        ):
-            d.append(
-                dw.Text(
-                    "𝓜",
-                    14,
-                    x + w - 10,
-                    y + 12,
-                    text_anchor="middle",
-                    dominant_baseline="middle",
-                    font_weight="bold",
-                    fill="darkred",
-                    font_family=FONT_FAMILY,
-                )
-            )
-        # Owned properties: show owner number or piece in white at bottom right
-        if tile.type in ("property", "station", "utility"):
-            owner = getattr(tile, "owner", None)
+        d.append(dw.Text(" ".join(words), font_size, cx, cy, text_anchor="middle", dominant_baseline="middle", font_family=FONT_FAMILY))
+        
+        # FIXED: Look for private _is_mortgaged and _owner
+        if tile.type() in ("property", "station", "utility") and getattr(tile, "_is_mortgaged", False):
+            d.append(dw.Text("𝓜", 14, x + w - 10, y + 12, text_anchor="middle", dominant_baseline="middle", font_weight="bold", fill="darkred", font_family=FONT_FAMILY))
+            
+        if tile.type() in ("property", "station", "utility"):
+            owner = getattr(tile, "_owner", None)
             if owner is not None:
-                if show_number:
-                    label = str(owner.index + 1)
-                else:
-                    label = owner.piece
-                d.append(
-                    dw.Text(
-                        label,
-                        12,
-                        x + w - 8,
-                        y + h - 6,
-                        text_anchor="end",
-                        dominant_baseline="alphabetic",
-                        fill="white",
-                        font_family=FONT_FAMILY,
-                        # font_weight="bold",
-                    )
-                )
+                label = str(owner.index() + 1) if show_number else owner.piece()
+                d.append(dw.Text(label, 12, x + w - 8, y + h - 6, text_anchor="end", dominant_baseline="alphabetic", fill="white", font_family=FONT_FAMILY))
+
 
 
 def draw_houses_and_hotels(d: dw.Drawing, board: Board) -> None:
     """Draw 🏠 for houses and 🏢 for hotels on street tiles."""
     for tile in board.tiles():
-        if tile.type != "property":
+        if tile.type() != "property":
             continue
         houses = getattr(tile, "houses", 0)
         hotels = getattr(tile, "hotels", 0)

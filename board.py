@@ -1,9 +1,10 @@
 import random
+import json
 from player import Player, build_player
 import pickle
 from player import Player
 from tile import Tile, build_tile
-import json
+from draw import draw
 
 
 class Board:
@@ -82,25 +83,26 @@ class Board:
         return self._current_dice[0] == self._current_dice[1]
 
     def play(self) -> None:
-        """Basic game loop to test movement and passing GO."""
-        print("---Starting Monopoly Basic Movement Test---")
+        """Game loop that generates SVG frames for the web viewer."""
+        print("--- Starting Monopoly Simulation ---")
+        frame_counter = 0
+
+        # 1. Take snapshot of the initial starting board
+        draw(self, f"frame_{frame_counter:04d}.svg")
+        frame_counter += 1
 
         for _ in range(8):
             player = self.current_player()
             active_turn = True
             doubles_count = 0
 
-            print(f"\n--- [{player.piece}] {player.name()}'s turn ---")
+            print(f"\n--- [{player.piece()}] {player.name()}'s turn ---")
 
             while active_turn:
-                # Roll dice
                 d1, d2 = self.roll_dice()
-                self._current_dice = (d1, d2)
                 total_roll = d1 + d2
+                roll_msg = f"🎲 [{player.piece()}] {player.name()} rolls {d1} and {d2} (Total: {total_roll})"
 
-                roll_msg = f"\n🎲 [{player.piece()}] {player.name()}  rolls {d1} and {d2} (Total: {total_roll})"
-
-                # Detect doubles
                 if self.is_double():
                     doubles_count += 1
                     roll_msg += " 🎲 DOUBLE!"
@@ -111,19 +113,22 @@ class Board:
                         active_turn = False
                     else:
                         player.move(total_roll)
-                        print("\n 🔄 Rolls again!")
-
+                        print(" 🔄 Rolls again!")
                 else:
                     print(roll_msg)
                     player.move(total_roll)
                     active_turn = False
+
+                # 2. Take a snapshot after the player completes their movement
+                draw(self, f"frame_{frame_counter:04d}.svg")
+                frame_counter += 1
 
             # Move to next player
             self._current_player_index = (self._current_player_index + 1) % len(
                 self._players
             )
 
-        print("\n--- Test Run Completed ---")
+        print(f"\n--- Simulation Completed: Generated {frame_counter} frames ---")
 
 
 def save_board(board: Board, pickle_path: str) -> None:

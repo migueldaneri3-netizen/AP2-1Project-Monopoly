@@ -106,6 +106,18 @@ class Player:
             f"🚨 [{self.piece()}] {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
         )
 
+    def pay(self, amount: int) -> None:
+        """Subtracts money from the player."""
+        self._money -= amount
+
+    def receive(self, amount: int) -> None:
+        """Adds money to the player."""
+        self._money += amount
+
+    def add_property(self, property_tile: "Property") -> None:
+        """Adds a property to the player's portfolio."""
+        self._owned_properties.append(property_tile)
+
 
 def build_player(board: Board, data: dict[str, Any], index: int) -> Player:
     """Build a Player from JSON-like dict with 'name', 'piece', and 'color' keys."""
