@@ -1,108 +1,152 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-import tile  # Importing your own file is Pylance-approved and uses 0 external libraries!
+import tile
 
+# Avoids import error
 if TYPE_CHECKING:
     from player import Player
 
 
 class PlayerStrategy:
-    """Pas 5.1: Interfície d'estratègia per decisions del jugador."""
+    """Abstract base class for the interface of all strategies.
+    This class acts as a formal contract to ensure that different strategies implementations
+    are interchangeable without modifying the core game engine."""
 
     def should_buy_property(
         self, player: "Player", property_tile: "tile.Property"
     ) -> bool:
+        """
+        Determine whether the player should purchase a landed-on property.
+
+        Args:
+            player: The player instance making the decision.
+            property_tile: The specific property tile available for purchase.
+
+        Returns:
+            bool: True if the property should be bought, False otherwise.
+
+        Raises:
+            NotImplementedError: This method must be overridden by concrete strategies.
+        """
+
         raise NotImplementedError("Subclasses must implement should_buy_property")
 
     def manage_portfolio(self, player: "Player") -> None:
-        """Allows the strategy to build houses/hotels or sell them."""
+        """
+        Perform mid-turn actions such as building or selling houses.
+
+        Args:
+            player: The player instance managing their portfolio.
+        """
+
+        # Default implementation: Do nothing.
         pass
 
 
 class SimpleStrategy(PlayerStrategy):
-    """Pas 5.2: Estratègia simple (comprar sempre, no construir)."""
+    """Simple strategy. Player buys properties as long as he can. Player never buys nor sells houses."""
 
     def should_buy_property(
         self, player: "Player", property_tile: "tile.Property"
     ) -> bool:
-        return player.money() >= getattr(property_tile, "_price", 0)
+        """Returns True if the player has enough money to buy the property."""
+        return player.money() >= property_tile.price()
 
     def manage_portfolio(self, player: "Player") -> None:
-        # The simple bot never builds!
+        """Does nothing: this strategy does not develop properties."""
         pass
 
 
 class SmartStrategy(PlayerStrategy):
-    """Pas 5.3 & 6: Estratègia millorada amb gestió intel·ligent i construcció."""
+    """Smart strategy with buildings and management of assets and liquidity."""
+
+    LIQUIDITY_SAFE_NET = 300
+    INVESTMENT_TRESHOLD = 500
 
     def should_buy_property(
         self, player: "Player", property_tile: "tile.Property"
     ) -> bool:
-        price = getattr(property_tile, "_price", 0)
+        """Evaluates property purchases based on liquidity.
+
+        Rules for buying:
+        1. Always rejects if funds are insufficient.
+        2. Always buys 'station' and same-color-tiles regardless of the cash buffer.
+        3. Buys other properties only if it leaves a $300 safety net.
+        """
+
+        price = property_tile.price()
 
         if player.money() < price:
             return False
+
         if property_tile.type() == "station":
             return True
-        if player.money() - price >= 300:
-            return True
 
-        if property_tile.type() == "property":
-            target_color = getattr(property_tile, "_color", None)
-            owns_same_color = any(
-                getattr(p, "_color", None) == target_color
-                for p in player.owned_properties()
-                if p.type() == "property"
-            )
-            if owns_same_color:
-                return True
+        # Aim for same-color streets
+        if property_tile.type() == "street":
+            target_color = property_tile.color()
+
+            if target_color:
+                if any(
+                    prop.color() == target_color for prop in player.owned_properties()
+                ):
+                    return True
+
+        # Ensure liquidity at all times
+        if player.money() - price >= self.LIQUIDITY_SAFE_NET:
+            return True
 
         return False
 
     def manage_portfolio(self, player: "Player") -> None:
-        """Pas 10: Executa accions post-moviment d'una en una segons l'estat financer."""
+        """Manages post-movement actions of the player following 3 scenarios:
+        1. Raising cash if it's below $300
+        2. Unmortgage if cash is high
+        3. Build houses & hotels if founds permit it."""
 
-        # --- PHASE 1: SURVIVAL (Raise cash if below £300) ---
-        if player.money() < 300:
+        # 1. Raise cash
+        if player.money() < self.LIQUIDITY_SAFE_NET:
             for prop in player.owned_properties():
-                if player.money() >= 300:
-                    break  # Survived! Stop liquidating.
+                if player.money() >= self.LIQUIDITY_SAFE_NET:
+                    break  # Stop liquidating.
 
                 if isinstance(prop, tile.Street):
-                    # Sell hotels one by one
                     if prop.can_sell_hotel():
                         prop.sell_hotel()
 
-                    # Sell houses one by one
-                    while prop.can_sell_house() and player.money() < 300:
+                    while (
+                        prop.can_sell_house()
+                        and player.money() < self.LIQUIDITY_SAFE_NET
+                    ):
                         prop.sell_house()
 
-                # Mortgage one by one
-                if prop.can_mortgage() and player.money() < 300:
+                if prop.can_mortgage() and player.money() < self.LIQUIDITY_SAFE_NET:
                     prop.mortgage()
 
-        # --- PHASE 2: PROSPERITY (Unmortgage if cash is high) ---
-        elif player.money() > 500:
+        # 2. Unmortgage
+        elif player.money() > self.INVESTMENT_TRESHOLD:
             for prop in player.owned_properties():
-                if getattr(prop, "_is_mortgaged", False) and prop.can_unmortgage():
-                    cost = int(getattr(prop, "_mortgage", 0) * 1.1)
-                    if player.money() - cost >= 300:
+                if prop.is_mortgaged() and prop.can_unmortgage():
+                    if (
+                        player.money() - prop.unmortgage_price()
+                        >= self.LIQUIDITY_SAFE_NET
+                    ):
                         prop.unmortgage()
 
-        # --- PHASE 3: GROWTH (Build houses/hotels if funds permit) ---
-        if player.money() > 300:
+        # 3. Build improvements
+        if player.money() > self.LIQUIDITY_SAFE_NET:
             for prop in player.owned_properties():
                 if isinstance(prop, tile.Street):
-
-                    # Upgrade to hotel
                     if (
                         prop.can_build_hotel()
-                        and (player.money() - getattr(prop, "_hotel_cost", 0)) >= 300
+                        and (player.money() - prop.hotel_cost())
+                        >= self.LIQUIDITY_SAFE_NET
                     ):
                         prop.build_hotel()
 
-                    # Build houses one by one
                     while prop.can_build_house():
-                        if (player.money() - getattr(prop, "_house_cost", 0)) < 300:
+                        if (
+                            player.money() - prop.house_cost()
+                        ) < self.LIQUIDITY_SAFE_NET:
                             break
                         prop.build_house()

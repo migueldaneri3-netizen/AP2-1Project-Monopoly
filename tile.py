@@ -70,13 +70,22 @@ class Property(Tile):
 
     def owner(self) -> Player | None:
         return self._owner
-
+    
+    def is_mortgaged(self) -> bool:
+        return self._is_mortgaged
+    
     def is_owned(self) -> bool:
         return self._owner is not None
 
     def calculate_rent(self, dice_roll: int) -> int:
         """Base rent calculation. Overridden by subclasses."""
         return self._base_rent
+
+    def price(self) -> int:
+        return self._price
+    
+    def unmortgage_price(self) -> int:
+        return int(self._mortgage * 1.1)
 
     # --- PAS 7: Hipoteques (Base Property) ---
 
@@ -101,10 +110,8 @@ class Property(Tile):
         current_owner = self.owner()
         if current_owner is None or not self._is_mortgaged:
             return False
-
-        # Calculate cost with 10% interest
-        cost = int(self._mortgage * 1.1)
-        return current_owner.money() >= cost
+        
+        return current_owner.money() >= self.unmortgage_price()
 
     def unmortgage(self) -> None:
         """Pas 7.2: Pay the mortgage value + 10% interest to unmortgage."""
@@ -117,6 +124,9 @@ class Property(Tile):
                 f"    -> 💸 {current_owner.name()} unmortgaged {self.name()} for £{cost}."
             )
 
+    def color(self) -> str | None:
+        return None
+    
     def buy(self, player: "Player") -> None:
         player.pay(self._price)
         self._owner = player
@@ -191,6 +201,9 @@ class Street(Property):
         self.houses: int = 0
         self.hotels: int = 0
 
+    def color(self) -> str:
+        return self._color
+    
     def calculate_rent(self, dice_roll: int) -> int:
         """Step 4.2: Calculate rent based on development and monopoly."""
         if self.hotels > 0:
@@ -289,6 +302,12 @@ class Street(Property):
             if street.hotels == 0 and street.houses < 4:
                 return False
         return True
+    
+    def hotel_cost(self) -> int:
+        return self._hotel_cost
+
+    def house_cost(self) -> int:
+        return self._house_cost
 
     def build_hotel(self) -> None:
         current_owner = self.owner()
