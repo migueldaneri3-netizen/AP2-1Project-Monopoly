@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from tile import Property
-from Strategy import PlayerStrategy, SimpleStrategy, SmartStrategy
+from strategy import PlayerStrategy, SimpleStrategy, SmartStrategy
 
 if TYPE_CHECKING:
     from board import Board
