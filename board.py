@@ -29,6 +29,13 @@ class Board:
         # State tracking
         self._current_player_index: int = 0
         self._current_dice: tuple[int, int] = (1, 1)
+        self._last_event: str = "Game Started!"  # <-- Add this!
+
+    def set_last_event(self, message: str) -> None:
+        self._last_event = message
+
+    def last_event(self) -> str:
+        return self._last_event
 
     def chance_deck(self) -> Deck:
         return self._chance_deck

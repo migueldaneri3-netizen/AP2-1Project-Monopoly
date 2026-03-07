@@ -549,17 +549,45 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
                 )
 
 
+def draw_news_ticker(d: dw.Drawing, board: Board) -> None:
+    """Draws the last event text in the center of the board."""
+    cx = BOARD_SIZE / 2
+    cy = BOARD_SIZE / 2 + 50  # 50 pixels below the center icon
+
+    event_text = board.last_event()
+
+    d.append(
+        dw.Text(
+            event_text,
+            16,
+            cx,
+            cy,
+            text_anchor="middle",
+            dominant_baseline="middle",
+            font_family=FONT_FAMILY,
+            font_weight="bold",
+            fill="#333333",
+        )
+    )
+
+
 def draw(board: Board, svg_path: str, show_number: bool = False) -> None:
     """Draw the Monopoly game to board.svg: board with padding, players in four center quadrants."""
     total_size = BOARD_SIZE + 2 * IMAGE_PADDING
     d = dw.Drawing(total_size, total_size, id_prefix="board")
+
     # Group shifts content so the board has padding on all sides
     g: Any = dw.Group(transform=f"translate({IMAGE_PADDING}, {IMAGE_PADDING})")
+
     draw_board_tiles(g, board, show_number)
     draw_houses_and_hotels(g, board)
     draw_player_circles(g, board, show_number)
     draw_center_icon(g)
     draw_players_center(g, board, show_number)
     draw_dice_in_current_player_box(g, board)
+
+    # 🛠️ FIX: Draw the news ticker LAST so it sits on top of the player boxes!
+    draw_news_ticker(g, board)
+
     d.append(g)
     d.save_svg(svg_path)
