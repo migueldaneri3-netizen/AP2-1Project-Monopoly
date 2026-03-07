@@ -99,41 +99,50 @@ class SmartStrategy(PlayerStrategy):
         return False
 
     def manage_portfolio(self, player: "Player") -> None:
-        """Manages post-movement actions of the player following 3 scenarios:
-        1. Raising cash if it's below $300
-        2. Unmortgage if cash is high
-        3. Build houses & hotels if founds permit it."""
+        """Manages post-movement actions of the player."""
 
-        # 1. Raise cash
+        # Scenario 1. Critical liquidity
         if player.money() < self.LIQUIDITY_SAFE_NET:
-            for prop in player.owned_properties():
-                if player.money() >= self.LIQUIDITY_SAFE_NET:
-                    break  # Stop liquidating.
+            self._survival_mode(player)
 
-                if isinstance(prop, tile.Street):
-                    if prop.can_sell_hotel():
-                        prop.sell_hotel()
+        # Scenario 2. High Liquidity
+        if player.money() > self.LIQUIDITY_SAFE_NET:
+            self._unmortgaging_mode(player)
 
-                    while (
-                        prop.can_sell_house()
-                        and player.money() < self.LIQUIDITY_SAFE_NET
-                    ):
-                        prop.sell_house()
+        # Scenario 3. Asset Improvement
+        if player.money() > self.INVESTMENT_TRESHOLD:
+            self._growth_mode(player)
 
-                if prop.can_mortgage() and player.money() < self.LIQUIDITY_SAFE_NET:
-                    prop.mortgage()
+    def _survival_mode(self, player: "Player") -> None:
+        """Liquidates assets to reach the safety net."""
 
-        # 2. Unmortgage
-        elif player.money() > self.INVESTMENT_TRESHOLD:
-            for prop in player.owned_properties():
-                if prop.is_mortgaged() and prop.can_unmortgage():
-                    if (
-                        player.money() - prop.unmortgage_price()
-                        >= self.LIQUIDITY_SAFE_NET
-                    ):
-                        prop.unmortgage()
+        for prop in player.owned_properties():
+            if player.money() >= self.LIQUIDITY_SAFE_NET:
+                break  # Stop liquidating.
 
-        # 3. Build improvements
+            if isinstance(prop, tile.Street):
+                if prop.can_sell_hotel():
+                    prop.sell_hotel()
+
+                while (
+                    prop.can_sell_house() and player.money() < self.LIQUIDITY_SAFE_NET
+                ):
+                    prop.sell_house()
+
+            if prop.can_mortgage() and player.money() < self.LIQUIDITY_SAFE_NET:
+                prop.mortgage()
+
+    def _unmortgaging_mode(self, player: "Player"):
+        """Uses excess cash to unmortgage properties."""
+
+        for prop in player.owned_properties():
+            if prop.is_mortgaged() and prop.can_unmortgage():
+                if player.money() - prop.unmortgage_price() >= self.LIQUIDITY_SAFE_NET:
+                    prop.unmortgage()
+
+    def _growth_mode(self, player: "Player"):
+        """Invests in property improvements while respecting the safety net."""
+
         if player.money() > self.LIQUIDITY_SAFE_NET:
             for prop in player.owned_properties():
                 if isinstance(prop, tile.Street):
