@@ -5,6 +5,7 @@ import pickle
 from player import Player
 from tile import Tile, build_tile
 from deck import Deck
+from draw import draw
 
 
 class Board:
@@ -29,7 +30,8 @@ class Board:
         # State tracking
         self._current_player_index: int = 0
         self._current_dice: tuple[int, int] = (1, 1)
-        self._last_event: str = "Game Started!"  # <-- Add this!
+        self._last_event: str = "Game Started!"
+        self._frame_counter = 0
 
     def set_last_event(self, message: str) -> None:
         self._last_event = message
@@ -80,12 +82,16 @@ class Board:
     def current_player(self) -> Player:
         return self._players[self._current_player_index]
 
+    @property
     def num_tiles(self) -> int:
         return len(self._tiles)
 
     def jail_position(self) -> int:
         return 10
 
+    def add_one_frame_counter(self) -> None:
+        self._frame_counter += 1
+    
     def roll_dice(self) -> tuple[int, int]:
         """Rolls two 6-sided dice and updates the board's current dice state."""
         d1 = random.randint(1, 6)
@@ -96,6 +102,15 @@ class Board:
     def is_double(self) -> bool:
         """Returns True if the last rolled dice have the same value."""
         return self._current_dice[0] == self._current_dice[1]
+    
+    def take_snapshot(self) -> None:
+        """Takes a picture of the current board state and increments the counter."""
+        draw(self, f"frames/frame_{self._frame_counter:04d}.svg")
+        self.add_one_frame_counter
+
+    @property
+    def frame_counter(self) -> int:
+        return self.frame_counter
 
     def play(self) -> None:
         """Game loop that generates SVG frames for the web viewer."""

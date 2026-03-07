@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from tile import Property
 from strategy import PlayerStrategy, SimpleStrategy, SmartStrategy
+import const as c
+from draw import draw
 
 if TYPE_CHECKING:
     from board import Board
@@ -37,68 +39,101 @@ class Player:
 
         # Game state attributes
         self._position = 0  # Everyone starts on GO
-        self._money = 1500  # Starting money
+        self._money = c.START_MONEY
         self._get_out_of_jail_free_cards = 0
         self._turns_in_prison = 0
         self._owned_properties = []
         self._strategy = SimpleStrategy()
+        self._last_event = ""
 
-    def board(self) -> Board:
-        return self._board
+    # Properties (Read-only access)
 
+    @property
     def name(self) -> str:
         return self._name
 
+    @property
+    def is_bankrupt(self) -> bool:
+        """A player is bankrupt if they have negative money."""
+        return self._money < 0
+
+    @property
+    def board(self) -> Board:
+        return self._board
+
+    @property
     def piece(self) -> str:
         return self._piece
 
+    @property
     def color(self) -> str:
         return self._color
 
+    @property
     def index(self) -> int:
         return self._index
 
-    def broke(self) -> bool:
-        """Return True if the player has negative money."""
-        return self._money < 0
-
+    @property
     def money(self) -> int:
         return self._money
 
+    @property
     def position(self) -> int:
         return self._position
 
+    @property
     def get_out_of_jail_free_cards(self) -> int:
         return self._get_out_of_jail_free_cards
 
+    @property
     def turns_in_prison(self) -> int:
         return self._turns_in_prison
 
+    @property
     def owned_properties(self) -> list[Property]:
         return self._owned_properties
 
+    @property
     def strategy(self) -> PlayerStrategy:
         return self._strategy
 
+    @property
+    def is_in_jail(self) -> bool:
+        """Returns True if the player is currently serving time."""
+        return self._turns_in_prison > 0
+
+    # Methods (Modification access)
+
     def set_strategy(self, strategy: PlayerStrategy) -> None:
+        """Sets the player strategy"""
         self._strategy = strategy
+
+    def set_last_event(self, message: str) -> None:
+        """Sets the last event to be printed"""
+        self._last_event = message
+
+    def take_snapshot(self) -> None:
+        """Takes a picture of the current board state and increments the counter."""
+        draw(self._board, f"frames/frame_{self._board.frame_counter:04d}.svg")
+        self.board.add_one_frame_counter()
 
     def move(self, spaces: int) -> None:
         """Moves the player forward by a given number of spaces."""
         old_position = self._position
-        total_tiles = self._board.num_tiles()
+        total_tiles = self._board.num_tiles
 
         # Calculate new position using modulo to wrap around the board
         self._position = (old_position + spaces) % total_tiles
 
         # If the new position is smaller than the old one, we passed or landed on GO
         if self._position < old_position:
-            self._money += 200
-            print(
-                f"🎉 [{self.piece}] {self._name} passed GO and collected £200! New balance: £{self._money}"
+            self._money += c.GO_SALARY
+            self.set_last_event(
+                f"🎉 [{self.piece}] {self._name} passed GO and collected ${c.GO_SALARY}!"
             )
+            self.take_snapshot
 
-        # Trigger the land_on logic for the new tile
+        # Trigger the land-on logic for the new tile
         target_tile = self._board.tiles()[self._position]
         target_tile.land_on(self)
 
@@ -112,7 +147,7 @@ class Player:
         self._turns_in_prison = 3
 
         print(
-            f"🚨 [{self.piece()}] {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
+            f"🚨 [{self.piece}] {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
         )
 
     def pay(self, amount: int) -> None:
@@ -122,10 +157,6 @@ class Player:
     def receive(self, amount: int) -> None:
         """Adds money to the player."""
         self._money += amount
-
-    def is_in_jail(self) -> bool:
-        """Returns True if the player is currently serving time."""
-        return self._turns_in_prison > 0
 
     def release_from_jail(self) -> None:
         """Clears the jail status."""
@@ -155,15 +186,12 @@ class Player:
         """Adds a property to the player's portfolio."""
         self._owned_properties.append(property_tile)
 
-    def is_bankrupt(self) -> bool:
-        """A player is bankrupt if they have negative money."""
-        return self._money < 0
-
 
 def build_player(board: Board, data: dict[str, Any], index: int) -> Player:
+
     player = Player(board, data["name"], data["piece"], data["color"], index)
 
-    # Let's make half the board smart, and half the board simple
+    # 2 players keep the simple strategy whereas the other two use the smart strategy
     if index < 2:
         player.set_strategy(SmartStrategy())
 
