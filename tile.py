@@ -118,11 +118,11 @@ class Property(Tile):
             )
 
     def buy(self, player: "Player") -> None:
-        """Handles the transaction of buying the property."""
         player.pay(self._price)
         self._owner = player
         player.add_property(self)
-        print(f"    -> 💰 {player.name()} bought {self.name()} for £{self._price}!")
+        # 🛠️ Add this:
+        self._board.set_last_event(f"💰 {player.name()} bought {self.name()}!")
 
     def land_on(self, player: "Player") -> None:
         """Step 4.5 & 5: Buy if free (based on strategy), pay rent if occupied."""
@@ -466,7 +466,8 @@ class TaxSquare(Tile):
     def land_on(self, player: "Player") -> None:
         super().land_on(player)
         player.pay(self._amount)
-        print(f"    -> 🏛️ {player.name()} paid £{self._amount} in taxes.")
+        # 🛠️ Add this:
+        self._board.set_last_event(f"🏛️ {player.name()} paid £{self._amount} in taxes!")
 
 
 def build_tile(board: "Board", data: dict[str, Any]) -> Tile:

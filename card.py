@@ -19,13 +19,14 @@ class Card:
 
     def execute(self, player: "Player", board: "Board") -> None:
         print(f"    -> 🃏 {player.name()} drew: {self.description}")
+
+        # 🛠️ OVERWRITE the dice roll message with the card text!
+        board.set_last_event(f"🃏 {player.name()} drew: {self.description}")
+
         self._do_execute(player, board)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
         raise NotImplementedError("Subclasses must implement _do_execute")
-
-
-# --- Pas 8.3: Subclasses for different card types ---
 
 
 class MoneyCard(Card):
@@ -78,7 +79,7 @@ class MoveCard(Card):
 
 
 class JailCard(Card):
-    def _do_execute(self, player: 'Player', board: 'Board') -> None:
+    def _do_execute(self, player: "Player", board: "Board") -> None:
         if self.action == "go_to_jail":
             player.go_to_jail()
         elif self.action == "get_out_of_jail_card":

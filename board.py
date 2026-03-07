@@ -142,8 +142,8 @@ class Board:
 
                     # 1. Try to use a card first
                     if player.use_get_out_of_jail_card():
-                        print(
-                            f"    -> 🎫 {player.name()} used a Get Out of Jail Free card and is free!"
+                        self.set_last_event(
+                            f"🎫 {player.name()} used a Get Out of Jail Free card and is free!"
                         )
                         # 'continue' restarts the loop. Since is_in_jail() is now False,
                         # they will immediately take a normal turn below!
@@ -152,30 +152,31 @@ class Board:
                     # 2. Roll for doubles
                     d1, d2 = self.roll_dice()
                     total_roll = d1 + d2
-                    roll_msg = f"🎲 [{player.piece()}] {player.name()} rolls {d1} and {d2} (Total: {total_roll})"
 
                     if self.is_double():
-                        print(roll_msg + " 🎲 DOUBLE! Escaped from jail!")
+                        self.set_last_event(
+                            f"🎲 {player.name()} rolled doubles ({total_roll}) & escaped!"
+                        )
                         player.release_from_jail()
                         player.move(total_roll)
                     else:
-                        print(roll_msg + " -> No doubles.")
                         player.decrement_jail_turn()
 
                         # 3. Third turn forced exit
                         if player.turns_in_prison() == 0:
-                            print(
-                                f"    -> 💸 Served full time! Paying £50 fine and moving."
+                            self.set_last_event(
+                                f"💸 {player.name()} paid £50 fine and moved {total_roll}."
                             )
                             player.pay(50)
                             player.release_from_jail()
                             player.move(total_roll)
 
+                        else:
+                            self.set_last_event(
+                                f"🔒 {player.name()} rolled {total_roll}. Stuck in Jail."
+                            )
                     # A turn spent rolling in jail ALWAYS ends immediately, even if they escape
                     active_turn = False
-
-                    # Take snapshot and skip the normal turn logic
-                    from draw import draw
 
                     draw(self, f"frames/frame_{frame_counter:04d}.svg")
                     frame_counter += 1
@@ -184,21 +185,23 @@ class Board:
                 # --- EXISTING NORMAL TURN LOGIC ---
                 d1, d2 = self.roll_dice()
                 total_roll = d1 + d2
-                roll_msg = f"\n🎲 [{player.piece()}] {player.name()} rolls {d1} and {d2} (Total: {total_roll})"
 
                 if self.is_double():
                     doubles_count += 1
-                    roll_msg += " 🎲 DOUBLE!"
-                    print(roll_msg)
-
                     if doubles_count == 3:
+                        self.set_last_event(
+                            f"🚨 {player.name()} sped! 3 doubles = Jail!"
+                        )
                         player.go_to_jail()
                         active_turn = False
                     else:
+                        # Set message BEFORE moving, so cards/taxes can overwrite it if needed
+                        self.set_last_event(
+                            f"🎲 {player.name()} rolled {total_roll} (DOUBLE!)"
+                        )
                         player.move(total_roll)
-                        print(" 🔄 Rolls again!")
                 else:
-                    print(roll_msg)
+                    self.set_last_event(f"🎲 {player.name()} rolled {total_roll}.")
                     player.move(total_roll)
                     active_turn = False
 
@@ -217,12 +220,19 @@ class Board:
                 self._players
             )
 
-        print(f"\n🏆 SIMULATION OVER after {turn_count} turns! 🏆")
+        self.set_last_event(f"\n🏆 SIMULATION OVER after {turn_count} turns! 🏆")
+        draw(self, f"frames/frame_{frame_counter:04d}.svg")
+        frame_counter += 1
+
         # Optional: Print the winner (the richest surviving player)
+
         winner = max(
             [p for p in self._players if not p.is_bankrupt()], key=lambda p: p.money()
         )
-        print(f"👑 Winner: {winner.name()} with £{winner.money()}!")
+
+        self.set_last_event(f"👑 Winner: {winner.name()} with £{winner.money()}!")
+        draw(self, f"frames/frame_{frame_counter:04d}.svg")
+        frame_counter += 1
 
 
 def save_board(board: Board, pickle_path: str) -> None:
