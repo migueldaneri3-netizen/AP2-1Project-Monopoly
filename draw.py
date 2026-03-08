@@ -60,37 +60,37 @@ def tile_center(position: int) -> tuple[float, float]:
 
 def tile_fill_color(tile: Tile) -> str:
     """Return fill color for a tile based on its type/color."""
-    if tile.type() == "property":
+    if tile.type == "property":
         # FIXED: Look for private _color
         color = getattr(tile, "_color", None)
         if color is not None:
             return COLOR_MAP.get(color, "#E0E0E0")
-    if tile.type() == "station":
+    if tile.type == "station":
         return "#E0E0E0"
-    if tile.type() == "utility":
+    if tile.type == "utility":
         return "#E0E0E0"
-    if tile.type() == "special":
-        if tile.name() == "GO":
+    if tile.type == "special":
+        if tile.name == "GO":
             return "#90EE90"
-        if "Jail" in tile.name() or "Visiting" in tile.name():
+        if "Jail" in tile.name or "Visiting" in tile.name:
             return "#F5F5DC"
-        if tile.name() == "Free Parking":
+        if tile.name == "Free Parking":
             return "#87CEEB"
-        if tile.name() == "Go To Jail":
+        if tile.name == "Go To Jail":
             return "#FFB6C1"
-    if tile.type() == "community_chest":
+    if tile.type == "community_chest":
         return "#98FB98"
-    if tile.type() == "chance":
+    if tile.type == "chance":
         return "#FFA500"
-    if tile.type() == "tax":
+    if tile.type == "tax":
         return "#DDA0DD"
     return "#F5F5F5"
 
 
 def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> None:
     """Draw all tiles on the left board area."""
-    for tile in board.tiles():
-        x, y, w, h = tile_rect(tile.position())
+    for tile in board.tiles:
+        x, y, w, h = tile_rect(tile.position)
         fill = tile_fill_color(tile)
         d.append(dw.Rectangle(x, y, w, h, fill=fill, stroke="black", stroke_width=1))
 
@@ -98,7 +98,7 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
         cx = x + w / 2
 
         # FIXED: Added () to all tile.type and tile.name calls
-        if tile.type() == "station":
+        if tile.type == "station":
             d.append(
                 dw.Text(
                     "🚆",
@@ -110,8 +110,8 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
                     font_family=FONT_FAMILY,
                 )
             )
-        elif tile.type() == "utility":
-            icon = "💡" if "Electric" in tile.name() else "🚰"
+        elif tile.type == "utility":
+            icon = "💡" if "Electric" in tile.name else "🚰"
             d.append(
                 dw.Text(
                     icon,
@@ -123,7 +123,7 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
                     font_family=FONT_FAMILY,
                 )
             )
-        elif tile.type() == "chance":
+        elif tile.type == "chance":
             d.append(
                 dw.Text(
                     "❓",
@@ -135,7 +135,7 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
                     font_family=FONT_FAMILY,
                 )
             )
-        elif tile.type() == "community_chest":
+        elif tile.type == "community_chest":
             d.append(
                 dw.Text(
                     "💰",
@@ -147,7 +147,7 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
                     font_family=FONT_FAMILY,
                 )
             )
-        elif tile.type() == "tax":
+        elif tile.type == "tax":
             d.append(
                 dw.Text(
                     "🏦",
@@ -159,14 +159,14 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
                     font_family=FONT_FAMILY,
                 )
             )
-        elif tile.type() == "special":
-            if tile.name() == "GO":
+        elif tile.type == "special":
+            if tile.name == "GO":
                 icon = "⭐"
-            elif tile.name() == "Go To Jail":
+            elif tile.name == "Go To Jail":
                 icon = "👮"
-            elif "Jail" in tile.name() or "Visiting" in tile.name():
+            elif "Jail" in tile.name or "Visiting" in tile.name:
                 icon = "⛓️"
-            elif tile.name() == "Free Parking":
+            elif tile.name == "Free Parking":
                 icon = "🚗"
             else:
                 icon = None
@@ -183,35 +183,64 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
                     )
                 )
 
-        if tile.type() == "property":
+        if tile.type == "property":
             line_y = y + h / 4
             d.append(dw.Line(x, line_y, x + w, line_y, stroke="black", stroke_width=1))
 
-        words = tile.name().split()
+        words = tile.name.split()
         if not words:
-            words = [tile.name()]
+            words = [tile.name]
 
-        # FIXED: Look for private _price instead of public price
         price = getattr(tile, "_price", None)
-        if tile.type() in ("property", "station", "utility") and price is not None:
+        if tile.type in ("property", "station", "utility") and price is not None:
             words.append(f"£{price}")
 
-        cx, cy = x + w / 2, y + h / 2
-        font_size = min(20, max(6, int(w / 8)))
-        d.append(
-            dw.Text(
-                " ".join(words),
-                font_size,
-                cx,
-                cy,
-                text_anchor="middle",
-                dominant_baseline="middle",
-                font_family=FONT_FAMILY,
+        # 1. Define the safe zone boundaries for text
+        if tile.type == "property":
+            top_margin = h / 4 + 4  # Color bar takes up the top 25%
+        elif tile.type in (
+            "station",
+            "utility",
+            "chance",
+            "community_chest",
+            "tax",
+            "special",
+        ):
+            top_margin = (
+                42  # Icons are centered at y+28, give them plenty of breathing room
             )
-        )
+        else:
+            top_margin = 10
 
-        # FIXED: Look for private _is_mortgaged and _owner
-        if tile.type() in ("property", "station", "utility") and getattr(
+        bottom_margin = 12  # Leave space for player tags at the bottom
+        available_h = h - top_margin - bottom_margin
+
+        # 2. Calculate the exact center of this new safe zone
+        cx = x + w / 2
+        cy = y + top_margin + (available_h / 2)
+
+        # 3. Format and draw the text
+        font_size = min(
+            11, max(6, int(w / 8))
+        )  # Slightly smaller to ensure 4-line texts fit comfortably
+        line_height = font_size * 1.2
+
+        start_y = cy - ((len(words) - 1) * line_height) / 2
+
+        for i, word in enumerate(words):
+            d.append(
+                dw.Text(
+                    word,
+                    font_size,
+                    cx,
+                    start_y + i * line_height,
+                    text_anchor="middle",
+                    dominant_baseline="middle",
+                    font_family=FONT_FAMILY,
+                )
+            )
+
+        if tile.type in ("property", "station", "utility") and getattr(
             tile, "_is_mortgaged", False
         ):
             d.append(
@@ -228,10 +257,10 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
                 )
             )
 
-        if tile.type() in ("property", "station", "utility"):
+        if tile.type in ("property", "station", "utility"):
             owner = getattr(tile, "_owner", None)
             if owner is not None:
-                label = str(owner.index() + 1) if show_number else owner.piece()
+                label = str(owner.index() + 1) if show_number else owner.piece
                 d.append(
                     dw.Text(
                         label,
@@ -248,14 +277,14 @@ def draw_board_tiles(d: dw.Drawing, board: Board, show_number: bool = False) -> 
 
 def draw_houses_and_hotels(d: dw.Drawing, board: Board) -> None:
     """Draw 🏠 for houses and 🏢 for hotels on street tiles."""
-    for tile in board.tiles():
-        if tile.type() != "property":
+    for tile in board.tiles:
+        if tile.type != "property":
             continue
         houses = getattr(tile, "houses", 0)
         hotels = getattr(tile, "hotels", 0)
         if houses == 0 and hotels == 0:
             continue
-        x, y, w, _h = tile_rect(tile.position())
+        x, y, w, _h = tile_rect(tile.position)
         # Row of house/hotel emojis at top of tile
         slot_w = min(w / 5, 14)
         gap = 4
@@ -292,14 +321,12 @@ def draw_houses_and_hotels(d: dw.Drawing, board: Board) -> None:
 
 def draw_player_circles(d: dw.Drawing, board: Board, show_number: bool = False) -> None:
     """Draw a circle for each player at their position (stacked if same tile)."""
-    players = board.players()
+    players = board.players
     radius = 16
     # Distribute circles so they don't overlap on same tile
     for i, player in enumerate(players):
-        cx, cy = tile_center(player.position())
-        same_tile = [
-            j for j, p in enumerate(players) if p.position() == player.position()
-        ]
+        cx, cy = tile_center(player.position)
+        same_tile = [j for j, p in enumerate(players) if p.position == player.position]
         idx = same_tile.index(i)
         n_on_tile = len(same_tile)
         offset_x = (idx - (n_on_tile - 1) / 2) * (radius * 2.2)
@@ -311,12 +338,12 @@ def draw_player_circles(d: dw.Drawing, board: Board, show_number: bool = False) 
                 px,
                 py,
                 radius,
-                fill=player.color(),
+                fill=player.color,
                 stroke="black",
                 stroke_width=2,
             )
         )
-        label = str(i + 1) if show_number else player.piece()
+        label = str(i + 1) if show_number else player.piece
         d.append(
             dw.Text(
                 label,
@@ -366,8 +393,8 @@ DICE_EMOJI = "⚀⚁⚂⚃⚄⚅"
 
 def draw_dice_in_current_player_box(d: dw.Drawing, board: Board) -> None:
     """Draw the two dice as emoji (⚀–⚅) in the bottom-right part of the current player's box."""
-    die1, die2 = board.dice()
-    current = board.current_player().index()
+    die1, die2 = board.dice
+    current = board.current_player.index
     if current >= 4:
         return
     quadrant = _player_to_quadrant(current)
@@ -396,34 +423,38 @@ def draw_dice_in_current_player_box(d: dw.Drawing, board: Board) -> None:
 
 
 def draw_center_icon(d: dw.Drawing) -> None:
-    """Draw a big icon in the center of the board."""
-    cx, cy = BOARD_SIZE / 2, BOARD_SIZE / 2 + 8
-    d.append(
-        dw.Text(
-            "🤑",
-            60,
-            cx,
-            cy,
-            text_anchor="middle",
-            dominant_baseline="middle",
-            font_family=FONT_FAMILY,
-        )
-    )
+    return
+
+
+# def draw_center_icon(d: dw.Drawing) -> None:
+#     """Draw a big icon in the center of the board."""
+#     cx, cy = BOARD_SIZE / 2, BOARD_SIZE / 2 + 8
+#     d.append(
+#         dw.Text(
+#             "🤑",
+#             60,
+#             cx,
+#             cy,
+#             text_anchor="middle",
+#             dominant_baseline="middle",
+#             font_family=FONT_FAMILY,
+#         )
+#     )
 
 
 def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) -> None:
     """Draw player info in four quadrants around the center of the board."""
-    players = board.players()
+    players = board.players
     if not players:
         return
-    current = board.current_player()
+    current = board.current_player
     for i, player in enumerate(players):
         if i >= 4:
             break
         quadrant = _player_to_quadrant(i)
         qx, qy, qw, qh = _quadrant_rect(quadrant)
         # Use player's color for the quadrant background (lighter version for readability)
-        fill = player.color()
+        fill = player.color
         # Bolder border for current player
         stroke_width = 3 if i == current else 1
         d.append(
@@ -441,9 +472,7 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
         line_h = 14
         ty = qy + pad + line_h
         header = (
-            f"{i+1}. {player.name()}"
-            if show_number
-            else f"{player.piece()} {player.name()}"
+            f"{i+1}. {player.name}" if show_number else f"{player.piece} {player.name}"
         )
         d.append(
             dw.Text(
@@ -457,17 +486,17 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
         )
         ty += line_h
         info_parts = [
-            f"💵 £{player.money()}",
-            f"💳 {player.get_out_of_jail_free_cards()}",
-            f"⛓️ {player.turns_in_prison()}",
+            f"💵 £{player.money}",
+            f"💳 {player.get_out_of_jail_free_cards}",
+            f"⛓️ {player.turns_in_prison}",
         ]
         info_text = " · ".join(info_parts)
-        text_kw = {"fill": "red"} if player.turns_in_prison() > 0 else {}
+        text_kw = {"fill": "red"} if player.turns_in_prison > 0 else {}
         d.append(
             dw.Text(info_text, 14, qx + pad, ty, font_family=FONT_FAMILY, **text_kw)
         )
         ty += line_h
-        if player.owned_properties():
+        if player.owned_properties:
             ty += 2
             prop_font_size = 14
             prop_line_h = 17
@@ -485,13 +514,13 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
             ty += prop_line_h
             max_props = 8
             # Sort by position on the board
-            sorted_props = sorted(player.owned_properties(), key=lambda p: p.position())
+            sorted_props = sorted(player.owned_properties, key=lambda p: p.position)
             for p in sorted_props[:max_props]:
                 name_text = (
-                    f"{p.name()} (M)" if getattr(p, "is_mortgaged", False) else p.name()
+                    f"{p.name} (M)" if getattr(p, "is_mortgaged", False) else p.name
                 )
                 # Symbol: ⬤ (color) for streets, 🚆 stations, 💡 electric, 🚰 water
-                if p.type() == "property":
+                if p.type == "property":
                     # ⬤ with group color for streets (circle for reliable color)
                     color = getattr(p, "color", None)
                     fill = COLOR_MAP.get(color, "#808080") if color else "#808080"
@@ -512,7 +541,7 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
                         )
                     )
                 elif p.type == "utility":
-                    symbol = "💡 " if "Electric" in p.name() else "🚰 "
+                    symbol = "💡 " if "Electric" in p.name else "🚰 "
                     d.append(
                         dw.Text(
                             symbol,
@@ -536,10 +565,10 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
                     )
                 )
                 ty += prop_line_h
-            if len(player.owned_properties()) > max_props:
+            if len(player.owned_properties) > max_props:
                 d.append(
                     dw.Text(
-                        f"+{len(player.owned_properties()) - max_props} more",
+                        f"+{len(player.owned_properties) - max_props} more",
                         prop_font_size,
                         qx + pad,
                         ty,
@@ -552,9 +581,9 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
 def draw_news_ticker(d: dw.Drawing, board: Board) -> None:
     """Draws the last event text in the center of the board."""
     cx = BOARD_SIZE / 2
-    cy = BOARD_SIZE / 2 + 50  # 50 pixels below the center icon
-
-    event_text = board.last_event()
+    # cy = BOARD_SIZE / 2 + 50  # 50 pixels below the center icon
+    cy = BOARD_SIZE / 2
+    event_text = board.last_event
 
     d.append(
         dw.Text(

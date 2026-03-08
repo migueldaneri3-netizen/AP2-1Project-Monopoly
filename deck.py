@@ -9,10 +9,13 @@ if TYPE_CHECKING:
 
 
 class Deck:
-    """Pas 8.2: Implementar la classe Deck amb barreja i roba."""
+    """Deck implementation with suffle and draw."""
+
+    _cards: list["Card"]
 
     def __init__(self, json_path: str, board: "Board"):
-        self._cards: list["Card"] = []
+
+        self._cards = []
 
         with open(json_path, "r", encoding="utf-8") as file:
             cards_data = json.load(file)

@@ -17,10 +17,11 @@ class Player:
     _index: int
     _position: int
     _money: int
-    _strategy: PlayerStrategy
     _get_out_of_jail_free_cards: int
     _turns_in_prision: int
     _owned_properties: list[Property]
+    _strategy: PlayerStrategy
+    _last_event: str
 
     def __init__(
         self,
@@ -102,7 +103,7 @@ class Player:
         """Returns True if the player is currently serving time."""
         return self._turns_in_prison > 0
 
-    # Methods (Modification access)
+    # Methods (Modification)
 
     def set_strategy(self, strategy: PlayerStrategy) -> None:
         """Sets the player strategy"""
@@ -131,24 +132,22 @@ class Player:
             self.set_last_event(
                 f"🎉 [{self.piece}] {self._name} passed GO and collected ${c.GO_SALARY}!"
             )
-            self.take_snapshot
+            self.take_snapshot()
 
         # Trigger the land-on logic for the new tile
-        target_tile = self._board.tiles()[self._position]
+        target_tile = self._board.tiles[self._position]
         target_tile.land_on(self)
 
     def go_to_jail(self) -> None:
         """Sends the player directly to jail without passing GO."""
-        # Update position to the jail tile (index 10)
-        self._position = self._board.jail_position()
+        self._position = self._board.jail_position
 
-        # We set this to 3 to indicate they are now locked up
-        # (We will use this in a future step for jail turns)
         self._turns_in_prison = 3
 
-        print(
+        self.set_last_event(
             f"🚨 [{self.piece}] {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
         )
+        self.take_snapshot()
 
     def pay(self, amount: int) -> None:
         """Subtracts money from the player."""
@@ -175,7 +174,7 @@ class Player:
         return False
 
     def set_position(self, new_position: int) -> None:
-        """Safely updates the player's position."""
+        """Updates the player's position without passing go."""
         self._position = new_position
 
     def add_get_out_of_jail_free_card(self) -> None:

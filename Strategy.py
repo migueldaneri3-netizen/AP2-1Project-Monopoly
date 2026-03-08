@@ -50,7 +50,7 @@ class SimpleStrategy(PlayerStrategy):
         self, player: "Player", property_tile: "tile.Property"
     ) -> bool:
         """Returns True if the player has enough money to buy the property."""
-        return player.money() >= property_tile.price()
+        return player.money >= property_tile.price
 
     def manage_portfolio(self, player: "Player") -> None:
         """Does nothing: this strategy does not develop properties."""
@@ -74,26 +74,24 @@ class SmartStrategy(PlayerStrategy):
         3. Buys other properties only if it leaves a $300 safety net.
         """
 
-        price = property_tile.price()
+        price = property_tile.price
 
-        if player.money() < price:
+        if player.money < price:
             return False
 
-        if property_tile.type() == "station":
+        if property_tile.type == "station":
             return True
 
         # Aim for same-color streets
-        if property_tile.type() == "street":
-            target_color = property_tile.color()
+        if property_tile.type == "street":
+            target_color = property_tile.color
 
             if target_color:
-                if any(
-                    prop.color() == target_color for prop in player.owned_properties()
-                ):
+                if any(prop.color == target_color for prop in player.owned_properties):
                     return True
 
         # Ensure liquidity at all times
-        if player.money() - price >= self.LIQUIDITY_SAFE_NET:
+        if player.money - price >= self.LIQUIDITY_SAFE_NET:
             return True
 
         return False
@@ -102,60 +100,55 @@ class SmartStrategy(PlayerStrategy):
         """Manages post-movement actions of the player."""
 
         # Scenario 1. Critical liquidity
-        if player.money() < self.LIQUIDITY_SAFE_NET:
+        if player.money < self.LIQUIDITY_SAFE_NET:
             self._survival_mode(player)
 
         # Scenario 2. High Liquidity
-        if player.money() > self.LIQUIDITY_SAFE_NET:
+        if player.money > self.LIQUIDITY_SAFE_NET:
             self._unmortgaging_mode(player)
 
         # Scenario 3. Asset Improvement
-        if player.money() > self.INVESTMENT_TRESHOLD:
+        if player.money > self.INVESTMENT_TRESHOLD:
             self._growth_mode(player)
 
     def _survival_mode(self, player: "Player") -> None:
         """Liquidates assets to reach the safety net."""
 
-        for prop in player.owned_properties():
-            if player.money() >= self.LIQUIDITY_SAFE_NET:
+        for prop in player.owned_properties:
+            if player.money >= self.LIQUIDITY_SAFE_NET:
                 break  # Stop liquidating.
 
             if isinstance(prop, tile.Street):
-                if prop.can_sell_hotel():
+                if prop.can_sell_hotel:
                     prop.sell_hotel()
 
-                while (
-                    prop.can_sell_house() and player.money() < self.LIQUIDITY_SAFE_NET
-                ):
+                while prop.can_sell_house and player.money < self.LIQUIDITY_SAFE_NET:
                     prop.sell_house()
 
-            if prop.can_mortgage() and player.money() < self.LIQUIDITY_SAFE_NET:
+            if prop.can_mortgage and player.money < self.LIQUIDITY_SAFE_NET:
                 prop.mortgage()
 
     def _unmortgaging_mode(self, player: "Player"):
         """Uses excess cash to unmortgage properties."""
 
-        for prop in player.owned_properties():
-            if prop.is_mortgaged() and prop.can_unmortgage():
-                if player.money() - prop.unmortgage_price() >= self.LIQUIDITY_SAFE_NET:
+        for prop in player.owned_properties:
+            if prop.is_mortgaged and prop.can_unmortgage:
+                if player.money - prop.unmortgage_price >= self.LIQUIDITY_SAFE_NET:
                     prop.unmortgage()
 
     def _growth_mode(self, player: "Player"):
         """Invests in property improvements while respecting the safety net."""
 
-        if player.money() > self.LIQUIDITY_SAFE_NET:
-            for prop in player.owned_properties():
+        if player.money > self.LIQUIDITY_SAFE_NET:
+            for prop in player.owned_properties:
                 if isinstance(prop, tile.Street):
                     if (
-                        prop.can_build_hotel()
-                        and (player.money() - prop.hotel_cost())
-                        >= self.LIQUIDITY_SAFE_NET
+                        prop.can_build_hotel
+                        and (player.money - prop.hotel_cost) >= self.LIQUIDITY_SAFE_NET
                     ):
                         prop.build_hotel()
 
-                    while prop.can_build_house():
-                        if (
-                            player.money() - prop.house_cost()
-                        ) < self.LIQUIDITY_SAFE_NET:
+                    while prop.can_build_house:
+                        if (player.money - prop.house_cost) < self.LIQUIDITY_SAFE_NET:
                             break
                         prop.build_house()

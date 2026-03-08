@@ -2,6 +2,7 @@ import random
 import json
 from player import Player, build_player
 import pickle
+import const as c
 from player import Player
 from tile import Tile, build_tile
 from deck import Deck
@@ -9,6 +10,16 @@ from draw import draw
 
 
 class Board:
+
+    _chance_deck: Deck
+    _community_chest_deck: Deck
+    _tiles: list[Tile]
+    _players: list[Player]
+    _current_player_index: int
+    _current_dice: tuple[int, int]
+    _last_event: str
+    _frame_counter: int
+
     def __init__(
         self,
         tiles_json_path: str,
@@ -21,29 +32,19 @@ class Board:
         self._community_chest_json_path = community_chest_json_path
         self._players_json_path = players_json_path
 
-        # Load the tiles immediately upon creating the board
+        # Information gathered from the json
         self._chance_deck = Deck(chance_json_path, self)
         self._community_chest_deck = Deck(community_chest_json_path, self)
-        self._tiles: list["Tile"] = self._load_tiles()
-        self._players: list["Player"] = self._load_players()
+        self._tiles = self._load_tiles()
+        self._players = self._load_players()
 
         # State tracking
-        self._current_player_index: int = 0
-        self._current_dice: tuple[int, int] = (1, 1)
-        self._last_event: str = "Game Started!"
+        self._current_player_index = 0
+        self._current_dice = (1, 1)
+        self._last_event = "Game Started!"
         self._frame_counter = 0
 
-    def set_last_event(self, message: str) -> None:
-        self._last_event = message
-
-    def last_event(self) -> str:
-        return self._last_event
-
-    def chance_deck(self) -> Deck:
-        return self._chance_deck
-
-    def community_chest_deck(self) -> Deck:
-        return self._community_chest_deck
+    # Private methods
 
     def _load_tiles(self) -> list["Tile"]:
         """Reads the tiles.json file and builds the board."""
@@ -51,6 +52,7 @@ class Board:
             tiles_data = json.load(file)
 
         board_tiles: list["Tile"] = []
+
         for tile_dict in tiles_data:
             new_tile = build_tile(self, tile_dict)
             board_tiles.append(new_tile)
@@ -58,10 +60,12 @@ class Board:
         return board_tiles
 
     def _load_players(self) -> list["Player"]:
+        """Reads the players.json file and builds the players."""
         with open(self._players_json_path, "r", encoding="utf-8") as file:
             players_data = json.load(file)
 
         board_players: list["Player"] = []
+
         for index, player_dict in enumerate(players_data):
             # Using the factory function from player.py
             new_player = build_player(self, player_dict, index)
@@ -69,16 +73,34 @@ class Board:
 
         return board_players
 
+    # Properties (Read-only access)
+
+    @property
+    def last_event(self) -> str:
+        return self._last_event
+
+    @property
+    def chance_deck(self) -> Deck:
+        return self._chance_deck
+
+    @property
+    def community_chest_deck(self) -> Deck:
+        return self._community_chest_deck
+
+    @property
     def tiles(self) -> list[Tile]:
         """Return the populated list of tiles"""
         return self._tiles
 
+    @property
     def players(self) -> list[Player]:
         return self._players
 
+    @property
     def dice(self) -> tuple[int, int]:
         return self._current_dice
 
+    @property
     def current_player(self) -> Player:
         return self._players[self._current_player_index]
 
@@ -86,168 +108,170 @@ class Board:
     def num_tiles(self) -> int:
         return len(self._tiles)
 
+    @property
     def jail_position(self) -> int:
         return 10
 
+    @property
+    def is_double(self) -> bool:
+        """Returns True if the last rolled dice have the same value."""
+        return self._current_dice[0] == self._current_dice[1]
+
+    @property
+    def frame_counter(self) -> int:
+        return self._frame_counter
+
+    # Methods (Modification)
+
+    def set_last_event(self, message: str) -> None:
+        """Sets last event to print out."""
+        self._last_event = message
+
     def add_one_frame_counter(self) -> None:
+        """Adds one to the frame counter."""
         self._frame_counter += 1
-    
+
     def roll_dice(self) -> tuple[int, int]:
-        """Rolls two 6-sided dice and updates the board's current dice state."""
+        """Rolls two random 6-sided dice and updates the board's current dice state."""
         d1 = random.randint(1, 6)
         d2 = random.randint(1, 6)
         self._current_dice = (d1, d2)
         return self._current_dice
 
-    def is_double(self) -> bool:
-        """Returns True if the last rolled dice have the same value."""
-        return self._current_dice[0] == self._current_dice[1]
-    
     def take_snapshot(self) -> None:
-        """Takes a picture of the current board state and increments the counter."""
+        """Sets andakes a picture of the current board state and increments the counter."""
         draw(self, f"frames/frame_{self._frame_counter:04d}.svg")
         self.add_one_frame_counter
 
-    @property
-    def frame_counter(self) -> int:
-        return self.frame_counter
-
     def play(self) -> None:
-        """Game loop that generates SVG frames for the web viewer."""
+        """Main game loop orchestrator."""
         print("--- Starting Monopoly Simulation ---")
-
-        from draw import draw
-
-        frame_counter = 0
-
-        # 1. Take snapshot of the initial starting board
-        draw(self, f"frames/frame_{frame_counter:04d}.svg")
-        frame_counter += 1
-
-        # 🛠️ Fail-safe limit to prevent infinite loops
-        MAX_TURNS = 500
+        self.take_snapshot()
         turn_count = 0
 
-        # Keep playing as long as more than 1 player is alive, AND we haven't hit the limit
-        while (
-            len([p for p in self._players if not p.is_bankrupt()]) > 1
-            and turn_count < MAX_TURNS
-        ):
-            player = self.current_player()
+        while not self._is_game_over(turn_count):
+            player = self.current_player
 
-            # Skip bankrupt players!
-            if player.is_bankrupt():
-                self._current_player_index = (self._current_player_index + 1) % len(
-                    self._players
-                )
+            if player.is_bankrupt:
+                self._advance_turn()
                 continue
 
-            active_turn = True
-            doubles_count = 0
+            self._execute_player_turn(player)
 
-            print(f"\n--- [{player.piece()}] {player.name()}'s turn ---")
-
-            while active_turn:
-
-                # --- NEW: JAIL TURN LOGIC ---
-                if player.is_in_jail():
-                    print(
-                        f"\n🔒 [{player.piece()}] {player.name()} is in JAIL (Turns left: {player.turns_in_prison()})"
-                    )
-
-                    # 1. Try to use a card first
-                    if player.use_get_out_of_jail_card():
-                        self.set_last_event(
-                            f"🎫 {player.name()} used a Get Out of Jail Free card and is free!"
-                        )
-                        # 'continue' restarts the loop. Since is_in_jail() is now False,
-                        # they will immediately take a normal turn below!
-                        continue
-
-                    # 2. Roll for doubles
-                    d1, d2 = self.roll_dice()
-                    total_roll = d1 + d2
-
-                    if self.is_double():
-                        self.set_last_event(
-                            f"🎲 {player.name()} rolled doubles ({total_roll}) & escaped!"
-                        )
-                        player.release_from_jail()
-                        player.move(total_roll)
-                    else:
-                        player.decrement_jail_turn()
-
-                        # 3. Third turn forced exit
-                        if player.turns_in_prison() == 0:
-                            self.set_last_event(
-                                f"💸 {player.name()} paid £50 fine and moved {total_roll}."
-                            )
-                            player.pay(50)
-                            player.release_from_jail()
-                            player.move(total_roll)
-
-                        else:
-                            self.set_last_event(
-                                f"🔒 {player.name()} rolled {total_roll}. Stuck in Jail."
-                            )
-                    # A turn spent rolling in jail ALWAYS ends immediately, even if they escape
-                    active_turn = False
-
-                    draw(self, f"frames/frame_{frame_counter:04d}.svg")
-                    frame_counter += 1
-                    continue
-
-                # --- EXISTING NORMAL TURN LOGIC ---
-                d1, d2 = self.roll_dice()
-                total_roll = d1 + d2
-
-                if self.is_double():
-                    doubles_count += 1
-                    if doubles_count == 3:
-                        self.set_last_event(
-                            f"🚨 {player.name()} sped! 3 doubles = Jail!"
-                        )
-                        player.go_to_jail()
-                        active_turn = False
-                    else:
-                        # Set message BEFORE moving, so cards/taxes can overwrite it if needed
-                        self.set_last_event(
-                            f"🎲 {player.name()} rolled {total_roll} (DOUBLE!)"
-                        )
-                        player.move(total_roll)
-                else:
-                    self.set_last_event(f"🎲 {player.name()} rolled {total_roll}.")
-                    player.move(total_roll)
-                    active_turn = False
-
-                # Snapshot after normal movement
-
-                draw(self, f"frames/frame_{frame_counter:04d}.svg")
-                frame_counter += 1
-
+            player.strategy.manage_portfolio(player)
+            self._advance_turn()
             turn_count += 1
 
-            # NEW: Run the portfolio optimization script at the very end of the turn
-            player.strategy().manage_portfolio(player)
+        self._declare_winner(turn_count)
+        print('--- Ended Monopoly Simulation ---')
 
-            # Move to next player
-            self._current_player_index = (self._current_player_index + 1) % len(
-                self._players
-            )
-
+    def _declare_winner(self, turn_count: int) -> None:
+        """Prints the final results and renders the final frames."""
         self.set_last_event(f"\n🏆 SIMULATION OVER after {turn_count} turns! 🏆")
-        draw(self, f"frames/frame_{frame_counter:04d}.svg")
-        frame_counter += 1
+        self.take_snapshot()
 
-        # Optional: Print the winner (the richest surviving player)
+        active_players = [p for p in self._players if not p.is_bankrupt]
+        if active_players:
+            winner = max(active_players, key=lambda p: p.money)
+            self.set_last_event(f"👑 Winner: {winner.name} with £{winner.money}!")
+            self.take_snapshot()
 
-        winner = max(
-            [p for p in self._players if not p.is_bankrupt()], key=lambda p: p.money()
+    def _is_game_over(self, turn_count: int) -> bool:
+        """Checks if the game has reached an end condition."""
+        active_players = sum(1 for player in self._players if not player.is_bankrupt)
+        return turn_count >= c.MAX_TURNS or active_players <= 1
+
+    def _advance_turn(self) -> None:
+        """Moves the index to the next player."""
+        self._current_player_index = (self._current_player_index + 1) % len(
+            self._players
         )
 
-        self.set_last_event(f"👑 Winner: {winner.name()} with £{winner.money()}!")
-        draw(self, f"frames/frame_{frame_counter:04d}.svg")
-        frame_counter += 1
+    def _handle_jail_logic(self, player: Player) -> bool:
+        """Executes jail rules.
+        Returns True if the player escapes cleanly and takes a normal turn."""
+        self.set_last_event(
+            f"\n🔒 [{player.piece}] {player.name} is in JAIL (Turns left: {player.turns_in_prison})"
+        )
+        self.take_snapshot()
+
+        if player.use_get_out_of_jail_card():
+            self.set_last_event(
+                f"🎫 {player.name} used a Get Out of Jail Free card and is free!"
+            )
+            return True
+
+        # Roll for escape
+        d1, d2 = self.roll_dice()
+        total_roll = d1 + d2
+
+        if self.is_double:
+            self.set_last_event(
+                f"🎲 {player.name} rolled doubles ({total_roll}) & escaped!"
+            )
+            player.release_from_jail()
+            player.move(total_roll)
+
+        else:
+            player.decrement_jail_turn()
+            if player.turns_in_prison == 0:
+                self.set_last_event(
+                    f"💸 {player.name} paid $50 fine and moved {total_roll}."
+                )
+                player.pay(50)
+                player.release_from_jail()
+                player.move(total_roll)
+            else:
+                self.set_last_event(
+                    f"🔒 {player.name} rolled {total_roll}. Stuck in Jail."
+                )
+
+        return False
+
+    def _handle_normal_roll(
+        self, player: "Player", doubles_count: int
+    ) -> tuple[bool, int]:
+        """
+        Executes a standard dice roll and movement.
+        Returns a tuple: (is_turn_still_active, updated_doubles_count).
+        """
+        d1, d2 = self.roll_dice()
+        total_roll = d1 + d2
+
+        if self.is_double:
+            doubles_count += 1
+            if doubles_count == 3:
+                self.set_last_event(f"🚨 {player.name} sped! 3 doubles = Jail!")
+                player.go_to_jail()
+                return False, doubles_count
+
+            self.set_last_event(f"🎲 {player.name} rolled {total_roll} (DOUBLE!)")
+            player.move(total_roll)
+            return True, doubles_count  # Roll again
+
+        self.set_last_event(f"🎲 {player.name} rolled {total_roll}.")
+        player.move(total_roll)
+        return False, doubles_count
+
+    def _execute_player_turn(self, player: Player) -> None:
+        """Manages a player's turn, including potential multiple rolls for doubles."""
+        active_turn = True
+        doubles_count = 0
+
+        self.set_last_event(f"[{player.piece}] {player.name}'s turn")
+        self.take_snapshot()
+
+        while active_turn:
+            if player.is_in_jail:
+                if self._handle_jail_logic(player):
+                    continue
+            else:
+                self.take_snapshot()
+                break
+
+        # Normal roll logic
+        active_turn, doubles_count = self._handle_normal_roll(player, doubles_count)
+        self.take_snapshot()
 
 
 def save_board(board: Board, pickle_path: str) -> None:
