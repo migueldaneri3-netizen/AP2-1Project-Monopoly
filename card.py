@@ -34,8 +34,7 @@ class Card:
             player: The player who drew the card.
             board: The current game board.
         """
-        board.set_last_event(f"🃏 {player.name} drew: {self._description}")
-        board.take_snapshot()
+        board.take_snapshot(f"🃏 {player.name} drew: {self._description}")
         self._do_execute(player, board)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
@@ -91,8 +90,7 @@ class MoveCard(Card):
         if self._action == "move_to_position":
             if self._position < old_pos and self._position != board.jail_position:
                 player.receive(200)
-                board.set_last_event(f"💰 {player.name} passed GO and collected £200!")
-                board.take_snapshot()
+                board.take_snapshot(f"💰 {player.name} passed GO and collected £200!")
 
             player.set_position(self._position)
 
@@ -172,8 +170,7 @@ class PropertyAssessmentCard(Card):
                 total += (prop.houses * self.per_house) + (prop.hotels * self.per_hotel)
         if total > 0:
             player.pay(total)
-            board.set_last_event(f"🛠️ {player.name} paid ${total} for property repairs.")
-            board.take_snapshot()
+            board.take_snapshot(f"🛠️ {player.name} paid ${total} for property repairs.")
 
 
 def build_card(data: dict[str, Any]) -> Card:

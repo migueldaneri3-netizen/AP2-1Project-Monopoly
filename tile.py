@@ -55,13 +55,11 @@ class Tile:
 
     def land_on(self, player: "Player") -> None:
         """Handle what happens when a player lands on this tile."""
-        self.board.set_last_event(
+        self.board.take_snapshot(
             f"🏎️​ [{player.piece}] {player.name} landed on {self.name} (Type: {self.type})."
         )
-        self.board.take_snapshot()
         if self.description:
-            self.board.set_last_event(f"{self.description}")
-            self.board.take_snapshot()
+            self.board.take_snapshot(f"{self.description}")
 
 
 class Property(Tile):
@@ -147,10 +145,10 @@ class Property(Tile):
         if current_owner is not None and self.can_mortgage:
             self._is_mortgaged = True
             current_owner.receive(self._mortgage)
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f"🏦 {current_owner.name} mortgaged {self.name} for ${self._mortgage}."
             )
-            self.board.take_snapshot()
+           
 
     def unmortgage(self) -> None:
         """Pay the mortgage value + 10% interest to unmortgage."""
@@ -160,20 +158,18 @@ class Property(Tile):
             cost = self.unmortgage_price
             current_owner.pay(cost)
             self._is_mortgaged = False
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f" 💸 {current_owner.name} unmortgaged {self.name} for ${cost}."
             )
-            self.board.take_snapshot()
 
     def buy(self, player: "Player") -> None:
         """Buy the property paying the cost to the bank"""
         player.pay(self._price)
         self._owner = player
         player.add_property(self)
-        self._board.set_last_event(
+        self._board.take_snapshot(
             f"💰 {player.name} bought {self.name} for ${self._price}!"
         )
-        self.board.take_snapshot()
 
     def land_on(self, player: "Player") -> None:
         """Buy if free, pay rent if occupied."""
@@ -186,22 +182,21 @@ class Property(Tile):
                 if player.money >= self._price:
                     self.buy(player)
             else:
-                self.board.set_last_event(
+                self.board.take_snapshot(
                     f"🛑 {player.name} decided NOT to buy {self.name}."
                 )
-                self.board.take_snapshot()
 
         elif current_owner != player and not self._is_mortgaged:
 
             dice_roll = sum(self._board.dice)
             rent_amt = self.calculate_rent(dice_roll)
 
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f"Owned by {current_owner.name}. Rent is ${rent_amt}."
             )
             player.pay(rent_amt)
             current_owner.receive(rent_amt)
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f"💸 {player.name} paid ${rent_amt} to {current_owner.name}."
             )
 
@@ -397,7 +392,7 @@ class Street(Property):
         if current_owner is not None and self.can_build_house:
             current_owner.pay(self._house_cost)
             self._houses += 1
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f"🏠 {current_owner.name} built house #{self._houses} on {self.name} for ${self._house_cost}!"
             )
 
@@ -408,7 +403,7 @@ class Street(Property):
             current_owner.pay(self._hotel_cost)
             self._houses = 0
             self._hotels = 1
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f" 🏢 {current_owner.name} upgraded to a HOTEL on {self.name} for ${self._hotel_cost}!"
             )
 
@@ -419,7 +414,7 @@ class Street(Property):
             recoup_amount = self._house_cost // 2  # Bank pays half
             current_owner.receive(recoup_amount)
             self._houses -= 1
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f"🔨 {current_owner.name} sold a house on {self.name} for ${recoup_amount}."
             )
 
@@ -431,7 +426,7 @@ class Street(Property):
             current_owner.receive(recoup_amount)
             self._hotels = 0
             self._houses = 4  # Degrades back to 4 houses
-            self.board.set_last_event(
+            self.board.take_snapshot(
                 f"🔨 {current_owner.name} sold a hotel on {self.name} for ${recoup_amount}."
             )
 
@@ -585,7 +580,7 @@ class TaxSquare(Tile):
         """Deducts money from player."""
         super().land_on(player)
         player.pay(self._amount)
-        self._board.set_last_event(f"🏛️ {player.name} paid ${self._amount} in taxes!")
+        self._board.take_snapshot(f"🏛️ {player.name} paid ${self._amount} in taxes!")
 
 
 def build_tile(board: "Board", data: dict[str, Any]) -> Tile:

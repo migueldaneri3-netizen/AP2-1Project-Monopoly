@@ -138,15 +138,16 @@ class Board:
         self._current_dice = (d1, d2)
         return self._current_dice
 
-    def take_snapshot(self) -> None:
-        """Sets andakes a picture of the current board state and increments the counter."""
+    def take_snapshot(self, message: str) -> None:
+        """Sets an event, takes a picture of the current board state and increments the counter."""
+        self.set_last_event(message)
         draw(self, f"frames/frame_{self._frame_counter:04d}.svg")
-        self.add_one_frame_counter
+        self.add_one_frame_counter()
 
     def play(self) -> None:
         """Main game loop orchestrator."""
         print("--- Starting Monopoly Simulation ---")
-        self.take_snapshot()
+        self.take_snapshot("Game Started!")
         turn_count = 0
 
         while not self._is_game_over(turn_count):
@@ -163,18 +164,16 @@ class Board:
             turn_count += 1
 
         self._declare_winner(turn_count)
-        print('--- Ended Monopoly Simulation ---')
+        print("--- Ended Monopoly Simulation ---")
 
     def _declare_winner(self, turn_count: int) -> None:
         """Prints the final results and renders the final frames."""
-        self.set_last_event(f"\n🏆 SIMULATION OVER after {turn_count} turns! 🏆")
-        self.take_snapshot()
+        self.take_snapshot(f"🏆 SIMULATION OVER after {turn_count} turns! 🏆")
 
         active_players = [p for p in self._players if not p.is_bankrupt]
         if active_players:
             winner = max(active_players, key=lambda p: p.money)
-            self.set_last_event(f"👑 Winner: {winner.name} with £{winner.money}!")
-            self.take_snapshot()
+            self.take_snapshot(f"👑 Winner: {winner.name} with ${winner.money}!")
 
     def _is_game_over(self, turn_count: int) -> bool:
         """Checks if the game has reached an end condition."""
@@ -190,13 +189,12 @@ class Board:
     def _handle_jail_logic(self, player: Player) -> bool:
         """Executes jail rules.
         Returns True if the player escapes cleanly and takes a normal turn."""
-        self.set_last_event(
+        self.take_snapshot(
             f"\n🔒 [{player.piece}] {player.name} is in JAIL (Turns left: {player.turns_in_prison})"
         )
-        self.take_snapshot()
 
         if player.use_get_out_of_jail_card():
-            self.set_last_event(
+            self.take_snapshot(
                 f"🎫 {player.name} used a Get Out of Jail Free card and is free!"
             )
             return True
@@ -206,7 +204,7 @@ class Board:
         total_roll = d1 + d2
 
         if self.is_double:
-            self.set_last_event(
+            self.take_snapshot(
                 f"🎲 {player.name} rolled doubles ({total_roll}) & escaped!"
             )
             player.release_from_jail()
@@ -215,14 +213,14 @@ class Board:
         else:
             player.decrement_jail_turn()
             if player.turns_in_prison == 0:
-                self.set_last_event(
+                self.take_snapshot(
                     f"💸 {player.name} paid $50 fine and moved {total_roll}."
                 )
                 player.pay(50)
                 player.release_from_jail()
                 player.move(total_roll)
             else:
-                self.set_last_event(
+                self.take_snapshot(
                     f"🔒 {player.name} rolled {total_roll}. Stuck in Jail."
                 )
 
@@ -241,15 +239,15 @@ class Board:
         if self.is_double:
             doubles_count += 1
             if doubles_count == 3:
-                self.set_last_event(f"🚨 {player.name} sped! 3 doubles = Jail!")
+                self.take_snapshot(f"🚨 {player.name} sped! 3 doubles = Jail!")
                 player.go_to_jail()
                 return False, doubles_count
 
-            self.set_last_event(f"🎲 {player.name} rolled {total_roll} (DOUBLE!)")
+            self.take_snapshot(f"🎲 {player.name} rolled {total_roll} (DOUBLE!)")
             player.move(total_roll)
             return True, doubles_count  # Roll again
 
-        self.set_last_event(f"🎲 {player.name} rolled {total_roll}.")
+        self.take_snapshot(f"🎲 {player.name} rolled {total_roll}.")
         player.move(total_roll)
         return False, doubles_count
 
@@ -258,20 +256,16 @@ class Board:
         active_turn = True
         doubles_count = 0
 
-        self.set_last_event(f"[{player.piece}] {player.name}'s turn")
-        self.take_snapshot()
-
         while active_turn:
             if player.is_in_jail:
                 if self._handle_jail_logic(player):
                     continue
             else:
-                self.take_snapshot()
+                self.take_snapshot(f"[{player.piece}] {player.name}'s turn")
                 break
 
         # Normal roll logic
         active_turn, doubles_count = self._handle_normal_roll(player, doubles_count)
-        self.take_snapshot()
 
 
 def save_board(board: Board, pickle_path: str) -> None:
