@@ -1,5 +1,6 @@
 import os
 import glob
+import random
 from board import Board
 
 
@@ -23,6 +24,7 @@ def main() -> None:
         players_json_path="data/players.json",
     )
 
+    random.seed(1)
     board.play()
 
 
