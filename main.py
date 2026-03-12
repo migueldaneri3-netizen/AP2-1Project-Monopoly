@@ -24,7 +24,7 @@ def main() -> None:
         players_json_path="data/players.json",
     )
 
-    random.seed(1)
+    random.seed(2)
     board.play()
 
 

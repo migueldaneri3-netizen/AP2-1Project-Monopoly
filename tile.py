@@ -55,11 +55,7 @@ class Tile:
 
     def land_on(self, player: "Player") -> None:
         """Handle what happens when a player lands on this tile."""
-        self.board.take_snapshot(
-            f"🏎️​ [{player.piece}] {player.name} landed on {self.name} (Type: {self.type})."
-        )
-        if self.description:
-            self.board.take_snapshot(f"{self.description}")
+        self.board.take_snapshot(f"🏎️​ {player.name} landed on {self.name}")
 
 
 class Property(Tile):
@@ -148,7 +144,6 @@ class Property(Tile):
             self.board.take_snapshot(
                 f"🏦 {current_owner.name} mortgaged {self.name} for ${self._mortgage}."
             )
-           
 
     def unmortgage(self) -> None:
         """Pay the mortgage value + 10% interest to unmortgage."""

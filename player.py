@@ -130,7 +130,7 @@ class Player:
         if self._position < old_position:
             self._money += c.GO_SALARY
             self.set_last_event(
-                f"🎉 [{self.piece}] {self._name} passed GO and collected ${c.GO_SALARY}!"
+                f"🎉 {self._name} passed GO and collected ${c.GO_SALARY}!"
             )
             self.take_snapshot()
 
@@ -145,7 +145,7 @@ class Player:
         self._turns_in_prison = 3
 
         self.set_last_event(
-            f"🚨 [{self.piece}] {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
+            f"🚨 {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
         )
         self.take_snapshot()
 

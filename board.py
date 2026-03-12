@@ -190,7 +190,7 @@ class Board:
         """Executes jail rules.
         Returns True if the player escapes cleanly and takes a normal turn."""
         self.take_snapshot(
-            f"\n🔒 [{player.piece}] {player.name} is in JAIL (Turns left: {player.turns_in_prison})"
+            f"\n🔒 {player.name} is in JAIL (Turns left: {player.turns_in_prison})"
         )
 
         if player.use_get_out_of_jail_card():
@@ -261,7 +261,7 @@ class Board:
                 if self._handle_jail_logic(player):
                     continue
             else:
-                self.take_snapshot(f"[{player.piece}] {player.name}'s turn")
+                self.take_snapshot(f"{player.piece} {player.name}'s turn")
                 break
 
         # Normal roll logic
