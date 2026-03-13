@@ -159,7 +159,11 @@ class Board:
 
             self._execute_player_turn(player)
 
-            player.strategy.manage_portfolio(player)
+            if player.money < 0 and not player.is_bankrupt:
+                player.declare_bankruptcy(self)
+            else:
+                player.strategy.manage_portfolio(player)
+
             self._advance_turn()
             turn_count += 1
 
@@ -190,7 +194,7 @@ class Board:
         """Executes jail rules.
         Returns True if the player escapes cleanly and takes a normal turn."""
         self.take_snapshot(
-            f"\n🔒 {player.name} is in JAIL (Turns left: {player.turns_in_prison})"
+            f"🔒 {player.name} is in JAIL (Turns left: {player.turns_in_prison})"
         )
 
         if player.use_get_out_of_jail_card():
@@ -214,9 +218,8 @@ class Board:
             player.decrement_jail_turn()
             if player.turns_in_prison == 0:
                 self.take_snapshot(
-                    f"💸 {player.name} paid $50 fine and moved {total_roll}."
+                    f"💸 {player.name} did a Rita-Hayworth and moved {total_roll}."
                 )
-                player.pay(50)
                 player.release_from_jail()
                 player.move(total_roll)
             else:
@@ -245,6 +248,12 @@ class Board:
 
             self.take_snapshot(f"🎲 {player.name} rolled {total_roll} (DOUBLE!)")
             player.move(total_roll)
+            if player.is_in_jail:
+                return False, doubles_count
+            
+            if player.money < 0:
+                return False, doubles_count
+            
             return True, doubles_count  # Roll again
 
         self.take_snapshot(f"🎲 {player.name} rolled {total_roll}.")
@@ -256,16 +265,17 @@ class Board:
         active_turn = True
         doubles_count = 0
 
+        self.take_snapshot(f"{player.piece} {player.name}'s turn")
+
         while active_turn:
             if player.is_in_jail:
-                if self._handle_jail_logic(player):
-                    continue
-            else:
-                self.take_snapshot(f"{player.piece} {player.name}'s turn")
-                break
+                gets_normal_turn = self._handle_jail_logic(player)
 
-        # Normal roll logic
-        active_turn, doubles_count = self._handle_normal_roll(player, doubles_count)
+                if not gets_normal_turn:
+                    break
+
+            # Normal roll logic
+            active_turn, doubles_count = self._handle_normal_roll(player, doubles_count)
 
 
 def save_board(board: Board, pickle_path: str) -> None:

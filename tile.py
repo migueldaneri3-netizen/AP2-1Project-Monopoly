@@ -130,6 +130,11 @@ class Property(Tile):
 
     # Methods
 
+    def reset_ownership(self) -> None:
+        """Returns the property to the bank and clears any mortgages."""
+        self._owner = None
+        self._is_mortgaged = False
+
     def calculate_rent(self, dice_roll: int) -> int:
         """Base rent calculation. Overridden by subclasses."""
         return self._base_rent
@@ -353,6 +358,12 @@ class Street(Property):
         if self.owner is None:
             return False
         return self._hotels == 1
+
+    def reset_ownership(self) -> None:
+        """Returns the street to the bank and destructs all buildings."""
+        super().reset_ownership()
+        self._houses = 0
+        self._hotels = 0
 
     def calculate_rent(self, dice_roll: int) -> int:
         """Calculate rent based on development and monopoly."""

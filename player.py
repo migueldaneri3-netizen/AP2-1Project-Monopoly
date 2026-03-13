@@ -22,6 +22,7 @@ class Player:
     _owned_properties: list[Property]
     _strategy: PlayerStrategy
     _last_event: str
+    _is_bankrupt_status: bool
 
     def __init__(
         self,
@@ -46,6 +47,7 @@ class Player:
         self._owned_properties = []
         self._strategy = SimpleStrategy()
         self._last_event = ""
+        self._is_bankrupt_status = False
 
     # Properties (Read-only access)
 
@@ -56,7 +58,7 @@ class Player:
     @property
     def is_bankrupt(self) -> bool:
         """A player is bankrupt if they have negative money."""
-        return self._money < 0
+        return self._is_bankrupt_status
 
     @property
     def board(self) -> Board:
@@ -104,6 +106,19 @@ class Player:
         return self._turns_in_prison > 0
 
     # Methods (Modification)
+    def declare_bankruptcy(self, board: "Board") -> None:
+        """Handles the bankruptcy process: resets money and returns properties to the bank."""
+        board.take_snapshot(f"💀 {self.name} went bankrupt!")
+
+        self._is_bankrupt_status = True
+        self._money = 0
+
+        for prop in self._owned_properties:
+            prop.reset_ownership()
+
+        self._owned_properties.clear()
+
+        self._turns_in_prison = 0
 
     def set_strategy(self, strategy: PlayerStrategy) -> None:
         """Sets the player strategy"""
@@ -191,7 +206,7 @@ def build_player(board: Board, data: dict[str, Any], index: int) -> Player:
     player = Player(board, data["name"], data["piece"], data["color"], index)
 
     # 2 players keep the simple strategy whereas the other two use the smart strategy
-    if index < 2:
+    if index < 1:
         player.set_strategy(SmartStrategy())
 
     return player

@@ -104,11 +104,11 @@ class SmartStrategy(PlayerStrategy):
             self._survival_mode(player)
 
         # Scenario 2. High Liquidity
-        if player.money > self.LIQUIDITY_SAFE_NET:
+        elif player.money > self.LIQUIDITY_SAFE_NET:
             self._unmortgaging_mode(player)
 
         # Scenario 3. Asset Improvement
-        if player.money > self.INVESTMENT_TRESHOLD:
+        elif player.money > self.INVESTMENT_TRESHOLD:
             self._growth_mode(player)
 
     def _survival_mode(self, player: "Player") -> None:
