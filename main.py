@@ -5,17 +5,18 @@ from board import Board
 
 
 def main() -> None:
+
+    random.seed(2)
+
     # 1. Create the 'frames' directory if it doesn't exist
     os.makedirs("frames", exist_ok=True)
 
-    # 2. Clean up only the old SVGs inside that specific folder
+    # 2. Clean up the old SVGs inside that specific folder
     for old_frame in glob.glob("frames/frame_*.svg"):
         try:
             os.remove(old_frame)
         except OSError:
             pass
-
-    # ... your existing board initialization ...
 
     board = Board(
         tiles_json_path="data/tiles.json",
@@ -24,7 +25,6 @@ def main() -> None:
         players_json_path="data/players.json",
     )
 
-    random.seed(2)
     board.play()
 
 
