@@ -2,15 +2,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import tile
 
-# Avoids import error
 if TYPE_CHECKING:
     from player import Player
 
 
 class PlayerStrategy:
-    """Abstract base class for the interface of all strategies.
-    This class acts as a formal contract to ensure that different strategies implementations
-    are interchangeable without modifying the core game engine."""
+    """Abstract base class for the interface of all strategies."""
 
     def should_buy_property(
         self, player: "Player", property_tile: "tile.Property"
@@ -18,7 +15,7 @@ class PlayerStrategy:
         """
         Determine whether the player should purchase a landed-on property.
 
-        Args:
+        Argumentss:
             player: The player instance making the decision.
             property_tile: The specific property tile available for purchase.
 

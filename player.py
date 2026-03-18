@@ -106,19 +106,6 @@ class Player:
         return self._turns_in_prison > 0
 
     # Methods (Modification)
-    def declare_bankruptcy(self, board: "Board") -> None:
-        """Handles the bankruptcy process: resets money and returns properties to the bank."""
-        board.take_snapshot(f"💀 {self.name} went bankrupt!")
-
-        self._is_bankrupt_status = True
-        self._money = 0
-
-        for prop in self._owned_properties:
-            prop.reset_ownership()
-
-        self._owned_properties.clear()
-
-        self._turns_in_prison = 0
 
     def set_strategy(self, strategy: PlayerStrategy) -> None:
         """Sets the player strategy"""
@@ -132,6 +119,8 @@ class Player:
         """Takes a picture of the current board state and increments the counter."""
         draw(self._board, f"frames/frame_{self._board.frame_counter:04d}.svg")
         self.board.add_one_frame_counter()
+
+    # In-game methods
 
     def move(self, spaces: int) -> None:
         """Moves the player forward by a given number of spaces."""
@@ -153,41 +142,6 @@ class Player:
         target_tile = self._board.tiles[self._position]
         target_tile.land_on(self)
 
-    def go_to_jail(self) -> None:
-        """Sends the player directly to jail without passing GO."""
-        self._position = self._board.jail_position
-
-        self._turns_in_prison = 3
-
-        self.set_last_event(
-            f"🚨 {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
-        )
-        self.take_snapshot()
-
-    def pay(self, amount: int) -> None:
-        """Subtracts money from the player."""
-        self._money -= amount
-
-    def receive(self, amount: int) -> None:
-        """Adds money to the player."""
-        self._money += amount
-
-    def release_from_jail(self) -> None:
-        """Clears the jail status."""
-        self._turns_in_prison = 0
-
-    def decrement_jail_turn(self) -> None:
-        """Reduces the remaining jail time by 1."""
-        self._turns_in_prison -= 1
-
-    def use_get_out_of_jail_card(self) -> bool:
-        """Attempts to use a card. Returns True if successful."""
-        if self._get_out_of_jail_free_cards > 0:
-            self._get_out_of_jail_free_cards -= 1
-            self.release_from_jail()
-            return True
-        return False
-
     def set_position(self, new_position: int) -> None:
         """Updates the player's position without passing go."""
         self._position = new_position
@@ -200,12 +154,63 @@ class Player:
         """Adds a property to the player's portfolio."""
         self._owned_properties.append(property_tile)
 
+    def pay(self, amount: int) -> None:
+        """Subtracts money from the player."""
+        self._money -= amount
+
+    def receive(self, amount: int) -> None:
+        """Adds money to the player."""
+        self._money += amount
+
+    def declare_bankruptcy(self, board: "Board") -> None:
+        """Handles the bankruptcy process: resets money and returns properties to the bank."""
+        board.take_snapshot(f"💀 {self.name} went bankrupt!")
+
+        self._is_bankrupt_status = True
+        self._money = 0
+
+        for prop in self._owned_properties:
+            prop.reset_ownership()
+
+        self._owned_properties.clear()
+
+        self._turns_in_prison = 0
+
+    # Jail logic
+
+    def go_to_jail(self) -> None:
+        """Sends the player directly to jail without passing GO."""
+        self._position = self._board.jail_position
+
+        self._turns_in_prison = 3
+
+        self.set_last_event(
+            f"🚨 {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
+        )
+        self.take_snapshot()
+
+    def use_get_out_of_jail_card(self) -> bool:
+        """Attempts to use a card. Returns True if successful."""
+        if self._get_out_of_jail_free_cards > 0:
+            self._get_out_of_jail_free_cards -= 1
+            self.release_from_jail()
+            return True
+        return False
+
+    def decrement_jail_turn(self) -> None:
+        """Reduces the remaining jail time by 1."""
+        self._turns_in_prison -= 1
+
+    def release_from_jail(self) -> None:
+        """Clears the jail status."""
+        self._turns_in_prison = 0
+
 
 def build_player(board: Board, data: dict[str, Any], index: int) -> Player:
 
     player = Player(board, data["name"], data["piece"], data["color"], index)
 
-    # 2 players keep the simple strategy whereas the other two use the smart strategy
+    # The first player recieves the smart strategy, all other players keep the basic one
     if index < 1:
         player.set_strategy(SmartStrategy())
 
