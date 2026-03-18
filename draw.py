@@ -426,22 +426,6 @@ def draw_center_icon(d: dw.Drawing) -> None:
     return
 
 
-# def draw_center_icon(d: dw.Drawing) -> None:
-#     """Draw a big icon in the center of the board."""
-#     cx, cy = BOARD_SIZE / 2, BOARD_SIZE / 2 + 8
-#     d.append(
-#         dw.Text(
-#             "🤑",
-#             60,
-#             cx,
-#             cy,
-#             text_anchor="middle",
-#             dominant_baseline="middle",
-#             font_family=FONT_FAMILY,
-#         )
-#     )
-
-
 def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) -> None:
     """Draw player info in four quadrants around the center of the board."""
     players = board.players
@@ -581,7 +565,6 @@ def draw_players_center(d: dw.Drawing, board: Board, show_number: bool = False) 
 def draw_news_ticker(d: dw.Drawing, board: Board) -> None:
     """Draws the last event text in the center of the board."""
     cx = BOARD_SIZE / 2
-    # cy = BOARD_SIZE / 2 + 50  # 50 pixels below the center icon
     cy = BOARD_SIZE / 2
     event_text = board.last_event
 
@@ -615,7 +598,6 @@ def draw(board: Board, svg_path: str, show_number: bool = False) -> None:
     draw_players_center(g, board, show_number)
     draw_dice_in_current_player_box(g, board)
 
-    # 🛠️ FIX: Draw the news ticker LAST so it sits on top of the player boxes!
     draw_news_ticker(g, board)
 
     d.append(g)

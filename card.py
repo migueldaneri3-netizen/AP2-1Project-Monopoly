@@ -30,7 +30,7 @@ class Card:
         Updates the board state with the card's description and triggers the specific logic
         defined in the subclass.
 
-        Args:
+        Arguments:
             player: The player who drew the card.
             board: The current game board.
         """
@@ -42,7 +42,7 @@ class Card:
 
         This method must be overridden by subclasses to define what actually happens to the player.
 
-        Args:
+        Arguments:
             player: The player to be affected by the action.
             board: The board to be modified by the action.
 
