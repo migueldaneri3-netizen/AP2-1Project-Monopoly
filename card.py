@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import tile
-
+import const as c
 if TYPE_CHECKING:
     from player import Player
     from board import Board
@@ -88,11 +88,11 @@ class MoveCard(Card):
         old_pos = player.position
 
         if self._action == "move_to_position":
-            if self._position < old_pos and self._position != board.jail_position:
-                player.receive(200)
-                board.take_snapshot(f"💰 {player.name} passed GO and collected £200!")
-
             player.set_position(self._position)
+
+            if self._position < old_pos and self._position != board.jail_position:
+                player.receive(c.GO_SALARY)
+                board.take_snapshot(f"💰 {player.name} passed GO and collected £200!")
 
         elif self._action == "move_back_spaces":
             player.set_position((old_pos - self._spaces) % board.num_tiles)

@@ -18,7 +18,7 @@ class Player:
     _position: int
     _money: int
     _get_out_of_jail_free_cards: int
-    _turns_in_prision: int
+    _turns_left_in_prison: int
     _owned_properties: list[Property]
     _strategy: PlayerStrategy
     _last_event: str
@@ -43,7 +43,7 @@ class Player:
         self._position = 0  # Everyone starts on GO
         self._money = c.START_MONEY
         self._get_out_of_jail_free_cards = 0
-        self._turns_in_prison = 0
+        self._turns_left_in_prison = 0
         self._owned_properties = []
         self._strategy = SimpleStrategy()
         self._last_event = ""
@@ -90,7 +90,7 @@ class Player:
 
     @property
     def turns_in_prison(self) -> int:
-        return self._turns_in_prison
+        return self._turns_left_in_prison
 
     @property
     def owned_properties(self) -> list[Property]:
@@ -103,7 +103,7 @@ class Player:
     @property
     def is_in_jail(self) -> bool:
         """Returns True if the player is currently serving time."""
-        return self._turns_in_prison > 0
+        return self._turns_left_in_prison > 0
 
     # Methods (Modification)
 
@@ -168,13 +168,14 @@ class Player:
 
         self._is_bankrupt_status = True
         self._money = 0
+        self._get_out_of_jail_free_cards = 0
 
         for prop in self._owned_properties:
             prop.reset_ownership()
 
         self._owned_properties.clear()
 
-        self._turns_in_prison = 0
+        self._turns_left_in_prison = 0
 
     # Jail logic
 
@@ -182,7 +183,7 @@ class Player:
         """Sends the player directly to jail without passing GO."""
         self._position = self._board.jail_position
 
-        self._turns_in_prison = 3
+        self._turns_left_in_prison = 3
 
         self.set_last_event(
             f"🚨 {self._name} was caught speeding! Go directly to Jail. Do not pass GO."
@@ -199,11 +200,11 @@ class Player:
 
     def decrement_jail_turn(self) -> None:
         """Reduces the remaining jail time by 1."""
-        self._turns_in_prison -= 1
+        self._turns_left_in_prison -= 1
 
     def release_from_jail(self) -> None:
         """Clears the jail status."""
-        self._turns_in_prison = 0
+        self._turns_left_in_prison = 0
 
 
 def build_player(board: Board, data: dict[str, Any], index: int) -> Player:
