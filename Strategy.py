@@ -59,6 +59,7 @@ class SmartStrategy(PlayerStrategy):
 
     LIQUIDITY_SAFE_NET = 300
     INVESTMENT_TRESHOLD = 500
+    CRITICAL_TRESHOLD = 50
 
     def should_buy_property(
         self, player: "Player", property_tile: "tile.Property"
@@ -97,15 +98,15 @@ class SmartStrategy(PlayerStrategy):
         """Manages post-movement actions of the player."""
 
         # Scenario 1. Critical liquidity
-        if player.money < self.LIQUIDITY_SAFE_NET:
+        if player.money < self.CRITICAL_TRESHOLD:
             self._survival_mode(player)
 
         # Scenario 2. High Liquidity
-        elif player.money > self.LIQUIDITY_SAFE_NET:
+        if player.money > self.LIQUIDITY_SAFE_NET:
             self._unmortgaging_mode(player)
 
         # Scenario 3. Asset Improvement
-        elif player.money > self.INVESTMENT_TRESHOLD:
+        if player.money > self.INVESTMENT_TRESHOLD:
             self._growth_mode(player)
 
     def _survival_mode(self, player: "Player") -> None:

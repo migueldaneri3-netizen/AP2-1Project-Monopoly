@@ -26,11 +26,13 @@ class Board:
         chance_json_path: str,
         community_chest_json_path: str,
         players_json_path: str,
+        num_players: int,
     ):
         self._tiles_json_path = tiles_json_path
         self._chance_json_path = chance_json_path
         self._community_chest_json_path = community_chest_json_path
         self._players_json_path = players_json_path
+        self._num_players = num_players
 
         # Information gathered from the json
         self._chance_deck = Deck(chance_json_path, self)
@@ -64,6 +66,7 @@ class Board:
         with open(self._players_json_path, "r", encoding="utf-8") as file:
             players_data = json.load(file)
 
+        players_data = players_data[: self._num_players]
         board_players: list["Player"] = []
 
         for index, player_dict in enumerate(players_data):
