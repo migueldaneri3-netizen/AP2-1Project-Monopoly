@@ -253,6 +253,8 @@ class Street(Property):
         self._houses = 0
         self._hotels = 0
 
+    # Properties
+
     @property
     def can_mortgage(self) -> bool:
         """Cannot mortgage a street with buildings."""
@@ -359,6 +361,8 @@ class Street(Property):
             return False
         return self._hotels == 1
 
+    # Methods
+
     def reset_ownership(self) -> None:
         """Returns the street to the bank and destructs all buildings."""
         super().reset_ownership()
@@ -378,7 +382,6 @@ class Street(Property):
         if self._houses == 1:
             return self._rent_with_1_house
 
-        # Double rent if the color set is owned but undeveloped
         if self.has_monopoly:
             return self._rent_with_color_set
 
@@ -465,6 +468,8 @@ class Station(Property):
         self._rent_with_3_stations = rent_with_3_stations
         self._rent_with_4_stations = rent_with_4_stations
 
+    # Methods
+
     def calculate_rent(self, dice_roll: int) -> int:
         """Rent doubles for each station owned."""
         owner = self.owner
@@ -518,6 +523,8 @@ class Utility(Property):
         self._rent_multiplier = rent_multiplier
         self._rent_multiplier_with_both = rent_multiplier_with_both
 
+    # Methods
+
     def calculate_rent(self, dice_roll: int) -> int:
         """Rent is dice roll * multiplier."""
         owner = self.owner
@@ -543,6 +550,8 @@ class CardSquare(Tile):
         self, board: "Board", position: int, name: str, tile_type: str, description: str
     ):
         super().__init__(board, position, name, tile_type, description)
+
+    # Methods
 
     def land_on(self, player: "Player") -> None:
         """Manages what happens when a player lands on this tile."""
@@ -581,6 +590,8 @@ class TaxSquare(Tile):
     ):
         super().__init__(board, position, name, tile_type, description)
         self._amount = amount
+
+    # Methods
 
     def land_on(self, player: "Player") -> None:
         """Deducts money from player."""
