@@ -271,7 +271,7 @@ class Board:
             player.decrement_jail_turn()
             if player.turns_in_prison == 0:
                 self.take_snapshot(
-                    f"💸 {player.name} has served it's time and moved {total_roll}."
+                    f"💸 {player.name} has served its time and moved {total_roll}."
                 )
                 player.release_from_jail()
                 player.move(total_roll)

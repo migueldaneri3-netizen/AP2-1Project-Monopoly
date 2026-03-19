@@ -91,6 +91,40 @@ def mock_handle_jail_logic(player: Player, board: Board) -> bool:
 
 #  TESTS
 
+# BOARD SETUP AND INITIALIZATION
+
+
+def test_board_initialization(board: Board):
+    assert len(board.tiles) == 40
+    assert len(board.players) == 4
+    assert board._current_player_index == 0  # type: ignore
+    assert board._current_dice == (1, 1)  # type: ignore
+
+
+def test_tiles_have_correct_types(board: Board):
+    assert board.tiles[1].type == "property"
+    assert board.tiles[5].type == "station"
+    assert board.tiles[12].type == "utility"
+    assert board.tiles[4].type == "tax"
+    assert board.tiles[20].type == "special"
+    assert board.tiles[30].type == "special"
+
+
+def test_players_have_strategies(board: Board):
+    for player in board.players:
+        assert player.strategy is not None
+
+
+def test_players_loaded_with_correct_attributes(board: Board):
+    player = board.players[0]
+    assert player.name == "Jordi"
+    assert player.money == 1500
+    assert player.position == 0
+    assert player.is_in_jail is False
+    assert player.get_out_of_jail_free_cards == 0
+    assert player.owned_properties == []
+
+
 # PLAYER MOVEMENT & BASIC MECHANICS
 
 
@@ -106,6 +140,23 @@ def test_simple_movement(board: Board):
     player = board.players[0]
     player.move(5)
     assert player.position == 5
+
+
+def test_normal_roll(board: Board):
+    player = board.players[0]
+
+    board._handle_normal_roll(player, 0)  # type: ignore
+    assert player.position != 0  # Should have moved
+
+
+def test_brief_play(board: Board):
+    c.MAX_TURNS = 2
+    player = board.players[0]
+    initial_position = player.position
+
+    board.play()
+
+    assert player.position != initial_position  # Should have moved
 
 
 # STRATEGY
@@ -635,6 +686,26 @@ def test_selling_houses_is_uniform(board: Board):
 
     assert s1.can_sell_house is False
     assert s2.can_sell_house is True
+
+
+def test_selling_hotel_reverts_to_four_houses(board: Board):
+    player = board.players[0]
+    s1: Street = board.tiles[1]  # type: ignore
+    s2: Street = board.tiles[3]  # type: ignore
+
+    s1.buy(player)
+    s2.buy(player)
+
+    for _ in range(4):
+        s1.build_house()
+        s2.build_house()
+
+    s1.build_hotel()
+    assert s1.hotels == 1
+
+    s1.sell_hotel()
+    assert s1.hotels == 0
+    assert s1.houses == 4
 
 
 # LANDING AND BUYING

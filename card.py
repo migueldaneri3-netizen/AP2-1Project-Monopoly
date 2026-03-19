@@ -159,15 +159,15 @@ class PropertyAssessmentCard(Card):
 
     def __init__(self, data: dict[str, Any]):
         super().__init__(data)
-        self.per_house: int = data.get("amountPerHouse", 0)
-        self.per_hotel: int = data.get("amountPerHotel", 0)
+        self._per_house: int = data.get("amountPerHouse", 0)
+        self._per_hotel: int = data.get("amountPerHotel", 0)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
         """Executes the payment for property owned."""
         total = 0
         for prop in player.owned_properties:
             if isinstance(prop, tile.Street):
-                total += (prop.houses * self.per_house) + (prop.hotels * self.per_hotel)
+                total += (prop.houses * self._per_house) + (prop.hotels * self._per_hotel)
         if total > 0:
             player.pay(total)
             board.take_snapshot(f"🛠️ {player.name} paid ${total} for property repairs.")
