@@ -59,7 +59,7 @@ In order to make the simulation work neatly, as well as to improve the user's ex
 - **Event Logging:** Implements a news ticker to chronologically log significant game events, providing a clear narrative of the game's progression.
 - **Interactive Web Viewer:** Compiles the generated SVG frames into an interactive HTML interface with playback controls (⏮️, ⬅️, ➡️, ⏭️), allowing for granular, turn-by-turn analysis of the simulation.
 - **User Interaction:** The simulation prompts the user for the number of players at the start, allowing for a customizable gaming experience while maintaining simplicity in execution.
-- **Deterministic Testing:** Includes a pre-configured random seed (`[4]`) that guarantees a fast-resolving game (142 turns), enabling consistent testing and demonstration of the simulation's capabilities.
+- **Deterministic Testing:** Includes a pre-configured random seed (`[4]`) that guarantees a fast-resolving game (142 turns) when played by 4 players, enabling consistent testing and demonstration of the simulation's capabilities.
 
 ## Requirements & Execution
 ### Dependencies
@@ -85,7 +85,7 @@ python main.py
 
 By default, this simulation is deterministic. Inside `main.py`, the random number generator is locked to a specific starting point (`random.seed(4)`). 
 
-- **Reason:** Monopoly is notorious for ties. A completely random game can easily drag on for thousands of turns, generating a massive directory of SVG frames that will eat up storage and slow down your browser during playback. This specific "Fast Seed" was chosen because it guarantees a highly volatile economy and a definitive winner in exactly 142 turns, making it perfect for quickly demonstrating the simulation's visual pipeline.
+- **Reason:** Monopoly is notorious for ties. A completely random game can easily drag on for thousands of turns, generating a massive directory of SVG frames that will eat up storage and slow down your browser during playback. This specific "Fast Seed" was chosen because it guarantees a highly volatile economy and a definitive winner in exactly 142 turns (when played by 4 players), making it perfect for quickly demonstrating the simulation's visual pipeline.
 
 - **How to Enable True Randomness:**
 If you want to run a completely unique, unpredictable simulation, you must remove this lock. 
