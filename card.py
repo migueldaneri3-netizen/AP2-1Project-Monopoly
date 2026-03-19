@@ -1,7 +1,17 @@
+"""
+Action cards (Chance and Community Chest) and execution logic.
+
+This module defines the polymorphic card system. The base `Card` class
+establishes the execution interface, while subclasses handle specific JSON
+actions (e.g., moving, paying money, going to jail). A factory function
+dynamically generates the correct subclass based on the parsed data.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import tile
 import const as c
+
 if TYPE_CHECKING:
     from player import Player
     from board import Board
@@ -17,6 +27,12 @@ class Card:
     _keep_card: bool
 
     def __init__(self, data: dict[str, Any]):
+        """
+        Initialize base card attributes from JSON data.
+
+        Args:
+            data (dict[str, Any]): A dictionary containing the card's configuration.
+        """
         self._id: int = data["id"]
         self._title: str = data.get("title", "")
         self._description: str = data.get("description", "")
@@ -25,33 +41,36 @@ class Card:
 
     def execute(self, player: "Player", board: "Board") -> None:
         """
-        Coordinates the card's execution process.
+        Coordinate the card's execution process.
 
         Updates the board state with the card's description and triggers the specific logic
         defined in the subclass.
 
-        Arguments:
-            player: The player who drew the card.
-            board: The current game board.
+        Args:
+            player (Player): The player who drew the card.
+            board (Board): The current game board.
         """
         board.take_snapshot(f"🃏 {player.name} drew: {self._description}")
         self._do_execute(player, board)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
-        """Implementation of the specific card action.
+        """
+        Implementation of the specific card action.
 
         This method must be overridden by subclasses to define what actually happens to the player.
 
-        Arguments:
-            player: The player to be affected by the action.
-            board: The board to be modified by the action.
+        Args:
+            player (Player): The player to be affected by the action.
+            board (Board): The board to be modified by the action.
 
         Raises:
-            NotImplementedError: If the subclass does not override this method."""
+            NotImplementedError: If the subclass does not override this method.
+        """
         raise NotImplementedError("Subclasses must implement _do_execute")
 
     @property
     def keep_card(self) -> bool:
+        """bool: Indicates if the card is kept in the player's inventory (e.g., Get Out of Jail)."""
         return self._keep_card
 
 
@@ -61,11 +80,17 @@ class MoneyCard(Card):
     _amount: int
 
     def __init__(self, data: dict[str, Any]):
+        """
+        Initialize the card with specific financial data.
+
+        Args:
+            data (dict[str, Any]): The JSON configuration dictionary.
+        """
         super().__init__(data)
         self._amount: int = data.get("amount", 0)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
-        """Executes the financial transfer (pay or receive)."""
+        """Execute the financial transfer (pay to or receive from the bank)."""
         if self._action == "collect_money":
             player.receive(self._amount)
         elif self._action == "pay_money":
@@ -79,12 +104,18 @@ class MoveCard(Card):
     _spaces: int
 
     def __init__(self, data: dict[str, Any]):
+        """
+        Initialize the card with specific movement data (target position or spaces).
+
+        Args:
+            data (dict[str, Any]): The JSON configuration dictionary.
+        """
         super().__init__(data)
         self._position: int = data.get("position", -1)
         self._spaces: int = data.get("spaces", 0)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
-        """Executes the movement"""
+        """Execute the movement, handling wrapping around the board and passing GO."""
         old_pos = player.position
 
         if self._action == "move_to_position":
@@ -104,6 +135,9 @@ class MoveCard(Card):
             else:
                 target_type = "utility"
 
+            # Scan forward on the board to find the next tile of the requested type,
+            # wrapping around to the beginning if necessary.
+
             for i in range(1, board.num_tiles + 1):
                 check_pos = (old_pos + i) % board.num_tiles
                 if board.tiles[check_pos].type == target_type:
@@ -119,7 +153,7 @@ class JailCard(Card):
     """A card which sends you to jail or which can be used to get out of jail when needed."""
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
-        """Executes the corresponding action."""
+        """Send the player to jail or grant them a 'Get Out of Jail Free' card."""
         if self._action == "go_to_jail":
             player.go_to_jail()
         elif self._action == "get_out_of_jail_card":
@@ -132,11 +166,17 @@ class PlayerInteractionCard(Card):
     _amount: int
 
     def __init__(self, data: dict[str, Any]):
+        """
+        Initialize the card with specific financial data.
+
+        Args:
+            data (dict[str, Any]): The JSON configuration dictionary.
+        """
         super().__init__(data)
         self._amount: int = data.get("amountPerPlayer", 0)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
-        """Executes the correspondin monetary transaction."""
+        """Execute monetary transactions between the active player and all other players."""
 
         if self._action == "pay_each_player":
             for other_player in board.players:
@@ -158,16 +198,25 @@ class PropertyAssessmentCard(Card):
     _per_hotel: int
 
     def __init__(self, data: dict[str, Any]):
+        """
+        Initialize the card with specific financial data.
+
+        Args:
+            data (dict[str, Any]): The JSON configuration dictionary.
+        """
         super().__init__(data)
         self._per_house: int = data.get("amountPerHouse", 0)
         self._per_hotel: int = data.get("amountPerHotel", 0)
 
     def _do_execute(self, player: "Player", board: "Board") -> None:
-        """Executes the payment for property owned."""
+        """Calculate and deduct repair fees based on the player's total houses and hotels."""
         total = 0
+        # Check up the total buildings owned across all streets to calculate the final tax
         for prop in player.owned_properties:
             if isinstance(prop, tile.Street):
-                total += (prop.houses * self._per_house) + (prop.hotels * self._per_hotel)
+                total += (prop.houses * self._per_house) + (
+                    prop.hotels * self._per_hotel
+                )
         if total > 0:
             player.pay(total)
             board.take_snapshot(f"🛠️ {player.name} paid ${total} for property repairs.")
