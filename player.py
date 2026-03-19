@@ -1,3 +1,12 @@
+"""
+Representation of a Monopoly player and their game state.
+
+This module defines the `Player` class, which tracks all individual state metrics
+such as money, position, owned properties, and jail status. It also handles
+core actions like moving, paying/receiving funds, and declaring bankruptcy.
+Includes a factory function for generating players from configuration data.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from tile import Property
@@ -32,6 +41,16 @@ class Player:
         color: str,
         index: int,
     ):
+        """
+        Initialize a new player with starting conditions.
+
+        Args:
+            board (Board): The game board instance this player belongs to.
+            name (str): The display name of the player.
+            piece (str): The character or emoji representing the player's token.
+            color (str): The hex code or name of the player's UI color.
+            index (int): The player's turn order index (0-indexed).
+        """
         # Attributes passed from the JSON
         self._board = board
         self._name = name
@@ -123,7 +142,15 @@ class Player:
     # In-game methods
 
     def move(self, spaces: int) -> None:
-        """Moves the player forward by a given number of spaces."""
+        """
+        Move the player forward by a specified number of spaces.
+
+        If the movement causes the player's position index to wrap around the board
+        (i.e., new position < old position), they pass GO and collect their salary.
+
+        Args:
+            spaces (int): The number of tiles to move forward.
+        """
         old_position = self._position
         total_tiles = self._board.num_tiles
 
@@ -143,7 +170,12 @@ class Player:
         target_tile.land_on(self)
 
     def set_position(self, new_position: int) -> None:
-        """Updates the player's position without passing go."""
+        """
+        Teleport the player to a specific tile index without triggering "Pass GO" logic.
+
+        Args:
+            new_position (int): The target tile index (0 to num_tiles - 1).
+        """
         self._position = new_position
 
     def add_get_out_of_jail_free_card(self) -> None:
@@ -163,7 +195,16 @@ class Player:
         self._money += amount
 
     def declare_bankruptcy(self, board: "Board") -> None:
-        """Handles the bankruptcy process: resets money and returns properties to the bank."""
+        """
+        Execute the bankruptcy process and remove the player from active contention.
+
+        This sets the bankrupt flag, zeroes out money and jail cards, releases
+        all owned properties back to the bank (clearing mortgages and buildings),
+        and resets any active jail sentences.
+
+        Args:
+            board (Board): The game board instance for taking the final snapshot.
+        """
         board.take_snapshot(f"💀 {self.name} went bankrupt!")
 
         self._is_bankrupt_status = True
@@ -191,7 +232,13 @@ class Player:
         self.take_snapshot()
 
     def use_get_out_of_jail_card(self) -> bool:
-        """Attempts to use a card. Returns True if successful."""
+        """
+        Attempt to consume a 'Get Out of Jail Free' card.
+
+        Returns:
+            True if a card was successfully used and the player was released,
+            False if the player has no cards.
+        """
         if self._get_out_of_jail_free_cards > 0:
             self._get_out_of_jail_free_cards -= 1
             self.release_from_jail()
