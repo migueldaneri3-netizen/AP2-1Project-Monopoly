@@ -1,3 +1,11 @@
+"""
+Core game engine and state orchestrator for the Monopoly simulation.
+
+This module defines the `Board` class, which initializes the game environment
+from JSON data, manages the main event loop, handles turn progression,
+evaluates win/loss conditions, and coordinates visual frame generation.
+"""
+
 import random
 import json
 from player import Player, build_player
@@ -28,6 +36,16 @@ class Board:
         players_json_path: str,
         num_players: int,
     ):
+        """
+        Initialize the game board and load all required assets.
+
+        Args:
+            tiles_json_path (str): File path to the board layout JSON.
+            chance_json_path (str): File path to the Chance deck JSON.
+            community_chest_json_path (str): File path to the Community Chest deck JSON.
+            players_json_path (str): File path to the player configuration JSON.
+            num_players (int): The number of active players (typically 2 to 4).
+        """
         self._tiles_json_path = tiles_json_path
         self._chance_json_path = chance_json_path
         self._community_chest_json_path = community_chest_json_path
@@ -142,10 +160,18 @@ class Board:
     # Game-mechanics methods
 
     def play(self) -> None:
-        """Main game loop orchestrator."""
+        """
+        Execute the main game loop.
+
+        Continuously iterates through player turns until an end condition is met
+        (either the maximum turn limit is reached or only one player remains).
+        Handles turn execution, bankruptcy checks, and portfolio management.
+        """
         print("--- Starting Monopoly Simulation ---")
         self.take_snapshot("Game Started!")
         turn_count = 0
+
+        # Main event loop: Runs until the turn limit is hit or a monopoly is achieved
 
         while not self._is_game_over(turn_count):
             player = self.current_player
@@ -156,6 +182,8 @@ class Board:
 
             self._execute_player_turn(player)
 
+            # Post-turn resolution: Check for bankruptcy forced by external payments
+            # (e.g., rent/taxes) before allowing the AI to invest remaining funds.
             if player.money < 0 and not player.is_bankrupt:
                 player.declare_bankruptcy(self)
             else:
@@ -216,14 +244,22 @@ class Board:
         self, player: "Player", doubles_count: int
     ) -> tuple[bool, int]:
         """
-        Executes a standard dice roll and movement.
-        Returns a tuple: (is_turn_still_active, updated_doubles_count).
+        Execute a standard dice roll, calculate movement, and enforce the speeding rule.
+
+        Args:
+            player (Player): The active player taking their turn.
+            doubles_count (int): The number of consecutive doubles rolled this turn.
+
+        Returns:
+            tuple[bool, int]: A boolean indicating if the player gets to roll again
+                (True) or if their turn ends (False), alongside the updated doubles count.
         """
         d1, d2 = self.roll_dice()
         total_roll = d1 + d2
 
         if self.is_double:
             doubles_count += 1
+            # The "Speeding" rule: 3 consecutive doubles instantly sends the player to jail
             if doubles_count == 3:
                 self.take_snapshot(f"🚨 {player.name} sped! 3 doubles = Jail!")
                 player.go_to_jail()
@@ -244,8 +280,19 @@ class Board:
         return False, doubles_count
 
     def _handle_jail_logic(self, player: Player) -> bool:
-        """Executes jail rules.
-        Returns True if the player escapes cleanly and takes a normal turn."""
+        """
+        Execute jail escape attempts or penalty enforcement for an incarcerated player.
+
+        Evaluates the use of 'Get Out of Jail Free' cards, rolling for doubles,
+        or serving the mandatory sentence.
+
+        Args:
+            player (Player): The player currently in jail.
+
+        Returns:
+            bool: True if the player escapes cleanly and is permitted to take
+                a normal movement roll immediately, False otherwise.
+        """
         self.take_snapshot(
             f"🔒 {player.name} is in JAIL (Turns left: {player.turns_in_prison})"
         )
