@@ -214,7 +214,7 @@ def test_smart_strategy_decided_to_mortgage(board: Board):
 
 
 def test_simple_strategy_always_buys(board: Board):
-    player = board.players[2]
+    player = board.players[3]
     s1: Street = board.tiles[1]  # type: ignore
     player._money = 60  # type: ignore
     s1.land_on(player)
@@ -222,7 +222,7 @@ def test_simple_strategy_always_buys(board: Board):
 
 
 def test_simple_strategy_never_builds(board: Board):
-    player = board.players[2]
+    player = board.players[3]
     s1: Street = board.tiles[1]  # type: ignore
     s2: Street = board.tiles[3]  # type: ignore
 

@@ -212,7 +212,7 @@ def build_player(board: Board, data: dict[str, Any], index: int) -> Player:
     player = Player(board, data["name"], data["piece"], data["color"], index)
 
     # The first player recieves the smart strategy, all other players keep the basic one
-    if index < 1:
+    if index < c.SMART_PLAYERS:
         player.set_strategy(SmartStrategy())
 
     return player

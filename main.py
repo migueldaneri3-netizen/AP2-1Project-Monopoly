@@ -3,12 +3,11 @@ import glob
 import random
 import const as c
 from board import Board
-from yogi import read
 
 
 def read_num_players() -> int:
     print(f"Enter number of players (2 - {c.MAX_PLAYERS}))")
-    num = read(int)
+    num = int(input())
     if num < 2 or num > c.MAX_PLAYERS:
         print("Invalid input, try again")
         return read_num_players()
@@ -17,7 +16,9 @@ def read_num_players() -> int:
 
 def main() -> None:
 
-    random.seed(2)
+    # 0. Set the random seed for reproducibility.
+    # This seed must be deleted if you want to have different games every time you run the program.
+    random.seed(4)
 
     # 1. Create the 'frames' directory if it doesn't exist
     os.makedirs("frames", exist_ok=True)
