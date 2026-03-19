@@ -1,3 +1,12 @@
+"""
+Unit tests for the Monopoly board game simulation.
+
+This module utilizes pytest to verify the integrity of the game's core mechanics.
+It tests board initialization, player movement, automated strategy decisions,
+economic transactions (rent, buying, building, bankruptcy), and edge cases
+like jail loops and specific card effects.
+"""
+
 import os
 import pytest
 import glob
@@ -41,8 +50,16 @@ def mock_handle_normal_roll(
     player: Player, doubles_count: int, board: Board
 ) -> tuple[bool, int]:
     """
-    Executes a standard movement when the dice have been set.
-    Returns a tuple: (is_turn_still_active, updated_doubles_count).
+    Execute a standard movement sequence given a preset dice roll.
+
+    Args:
+        player (Player): The player taking the turn.
+        doubles_count (int): The current consecutive doubles rolled by the player.
+        board (Board): The game board instance.
+
+    Returns:
+        tuple[bool, int]: A tuple containing a boolean (True if the turn continues
+            due to a valid double, False otherwise) and the updated doubles count.
     """
     d1, d2 = board.dice
     total_roll = d1 + d2
@@ -66,8 +83,17 @@ def mock_handle_normal_roll(
 
 
 def mock_handle_jail_logic(player: Player, board: Board) -> bool:
-    """Executes jail rules with a preset dice roll.
-    Returns True if the player escapes cleanly and takes a normal turn."""
+    """
+    Execute jail escape attempts or penalty enforcement with a preset dice roll.
+
+    Args:
+        player (Player): The player currently in jail.
+        board (Board): The game board instance.
+
+    Returns:
+        bool: True if the player escapes cleanly (via card or double) and
+            is permitted to take a normal turn, False otherwise.
+    """
 
     if player.use_get_out_of_jail_card():
         return True
@@ -186,6 +212,7 @@ def test_smart_strategy_accepts_affordable_purchase(board: Board):
 
 
 def test_smart_strategy_decides_to_build(board: Board):
+    """Verify that a player with sufficient funds and a monopoly will automatically build houses."""
     player = board.players[0]
     s1: Street = board.tiles[1]  # type: ignore
     s2: Street = board.tiles[3]  # type: ignore
@@ -200,6 +227,7 @@ def test_smart_strategy_decides_to_build(board: Board):
 
 
 def test_smart_strategy_decided_to_mortgage(board: Board):
+    """Verify that a bankrupt-approaching player will mortgage properties to raise capital."""
     player = board.players[0]
     s1: Street = board.tiles[1]  # type: ignore
     s2: Street = board.tiles[3]  # type: ignore
@@ -312,7 +340,7 @@ def test_doubles_allows_roll_again(board: Board):
 
 
 def test_triple_doubles_goes_to_jail(board: Board):
-
+    """Ensure the 'speeding' rule triggers: rolling three consecutive doubles sends the player to jail."""
     player = board.players[0]
     board._current_dice = (3, 3)  # Mock a double roll #type: ignore
 
@@ -744,11 +772,13 @@ def test_landing_on_free_parking(board: Board):
 
 
 def test_card_movement_triggers_pass_go(board: Board):
+    """Verify that being moved across the GO space by a Chance/Community Chest card awards the standard salary."""
     player = board.players[0]
     initial_money = player.money
 
     player.set_position(36)
 
+    # Mocking the JSON structure of an "Advance to X" card to test isolated movement mechanics
     card_data: dict[str, int | str] = {
         "id": 1,
         "action": "move_to_position",
@@ -782,6 +812,7 @@ def test_card_sends_to_jail_does_not_pass_go(board: Board):
 
 
 def test_repairs_card_calculates_correctly(board: Board):
+    """Ensure the 'General Repairs' card correctly tallies penalties based on the specific number of houses and hotels owned."""
     player = board.players[0]
 
     s1: Street = board.tiles[1]  # type: ignore
@@ -797,6 +828,7 @@ def test_repairs_card_calculates_correctly(board: Board):
 
     initial_money = player.money
 
+    # Mocking a repair card's JSON data to inject specific multiplier values for our test assertion
     card_data: dict[str, int | str] = {
         "id": 3,
         "action": "property_repairs",
@@ -854,6 +886,7 @@ def test_game_ends_after_all_turns_except_one_player_bankrupt(board: Board):
     # Start with 4 players
     assert len([p for p in players if not p.is_bankrupt]) == 4
 
+    # Systematically bankrupt all players but one to trigger the endgame condition
     # First bankruptcy
     players[1].declare_bankruptcy(board)
     assert len([p for p in players if not p.is_bankrupt]) == 3
