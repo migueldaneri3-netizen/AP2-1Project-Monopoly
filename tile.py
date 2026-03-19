@@ -23,6 +23,15 @@ class Tile:
         tile_type: str,
         description: str = "",
     ):
+        """Initialize a base board tile.
+
+        Args:
+            board (Board): The game board this tile belongs to.
+            position (int): The 0-indexed position of the tile on the board.
+            name (str): The display name of the tile.
+            tile_type (str): The category of the tile (e.g., 'property', 'tax').
+            description (str, optional): Additional text describing the tile. Defaults to "".
+        """
         self._board = board
         self._position = position
         self._name = name
@@ -54,7 +63,10 @@ class Tile:
     # Methods
 
     def land_on(self, player: "Player") -> None:
-        """Handle what happens when a player lands on this tile."""
+        """Handle the interaction when a player lands on this tile.
+
+        Args:
+            player (Player): The player who landed on the tile."""
         self.board.take_snapshot(f"🏎️​ {player.name} landed on {self.name}")
 
 
@@ -78,6 +90,19 @@ class Property(Tile):
         rent: int,
         mortgage: int,
     ):
+        """
+        Initialize a purchasable property tile.
+
+        Args:
+            board (Board): The game board this tile belongs to.
+            position (int): The position of the tile on the board.
+            name (str): The display name of the tile.
+            tile_type (str): The category of the tile.
+            description (str): Additional text describing the tile.
+            price (int): The purchase price of the property.
+            rent (int): The base rent cost when a player lands here.
+            mortgage (int): The money received when mortgaging the property.
+        """
         super().__init__(board, position, name, tile_type, description)
         self._price = price
         self._base_rent = rent
@@ -106,6 +131,7 @@ class Property(Tile):
 
     @property
     def unmortgage_price(self) -> int:
+        """Returns the cost to unmortgage the property (base mortgage value + 10% interest)."""
         return int(self._mortgage * 1.1)
 
     @property
@@ -136,7 +162,13 @@ class Property(Tile):
         self._is_mortgaged = False
 
     def calculate_rent(self, dice_roll: int) -> int:
-        """Base rent calculation. Overridden by subclasses."""
+        """Calculate the rent owed by a player landing on this property.
+
+        Args:
+            dice_roll (int): The sum of the dice rolled to land here (used by utilities).
+
+        Returns:
+            int: The calculated rent amount."""
         return self._base_rent
 
     def mortgage(self) -> None:
@@ -236,6 +268,28 @@ class Street(Property):
         house_cost: int,
         hotel_cost: int,
     ):
+        """
+        Initialize a street property that can be developed with houses and hotels.
+
+        Args:
+            board (Board): The game board.
+            position (int): The board position.
+            name (str): The street name.
+            tile_type (str): The tile category.
+            description (str): Additional text.
+            price (int): The purchase price.
+            rent (int): The base rent with no buildings.
+            mortgage (int): The mortgage value.
+            color (str): The color group this street belongs to.
+            rent_with_color_set (int): Rent when the owner has the monopoly but no buildings.
+            rent_with_1_house (int): Rent with 1 house.
+            rent_with_2_houses (int): Rent with 2 houses.
+            rent_with_3_houses (int): Rent with 3 houses.
+            rent_with_4_houses (int): Rent with 4 houses.
+            rent_with_hotel (int): Rent with a hotel.
+            house_cost (int): The cost to build one house.
+            hotel_cost (int): The cost to upgrade 4 houses to a hotel.
+        """
         super().__init__(
             board, position, name, tile_type, description, price, rent, mortgage
         )
@@ -264,7 +318,7 @@ class Street(Property):
 
     @property
     def has_monopoly(self) -> bool:
-        """Verifies if the owner owns all streets of this color."""
+        """bool: True if the owner possesses all streets of this color group, False otherwise."""
         current_owner = self.owner
         if current_owner is None:
             return False
@@ -477,6 +531,7 @@ class Station(Property):
         if not owner:
             return 0
 
+        # Checks how many station tiles the current owner possesses to determine the rent tier
         stations_owned = sum(
             1 for prop in owner.owned_properties if prop.type == "station"
         )
@@ -532,6 +587,7 @@ class Utility(Property):
         if not owner:
             return 0
 
+        # Checks how many utility tiles the current owner possesses to determine the dice multiplier
         utils_owned = sum(
             1 for prop in owner.owned_properties if prop.type == "utility"
         )
