@@ -107,7 +107,7 @@ python slideshow.py partida.html frames/frame_*.svg
 
 Example of the slideshow interface:
 
-![](slideshow_interface.png)
+![](images/slideshow_interface.png)
 
 ## Architecture & Module Specification
 
@@ -141,7 +141,7 @@ The project is divided into the following key modules:
   * **Responsibilities:** Ingests the directory of generated SVG frames and compiles them into an interactive HTML page with navigation controls for turn-by-turn playback.
 
   Example of the board visualization:
-    ![](board_visualization.png)
+    ![](images/board_visualization.png)
 
 ## Design Decisions 
 
